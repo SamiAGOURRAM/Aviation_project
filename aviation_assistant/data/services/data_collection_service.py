@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from aviation_assistant.data.connectors.avwx_connector import AVWXConnector
 from aviation_assistant.data.connectors.opensky_connector import OpenSkyConnector
 from aviation_assistant.data.connectors.noaa_connector import NOAAWeatherConnector
-from aviation_assistant.data.connectors.faa_notam_connector import FAANotamConnector
+from aviation_assistant.data.connectors.cirium_notam_connector import FAANotamConnector
 
 class DataCollectionService:
     """
