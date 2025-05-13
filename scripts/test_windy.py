@@ -3,9 +3,10 @@ import sys
 import logging
 import json
 from datetime import datetime, timedelta
-from typing import Dict, Any
 import matplotlib.pyplot as plt
-import numpy as np
+import time
+
+# Add the project root to the path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from aviation_assistant.data.connectors.windy_connector import WindyConnector
@@ -18,440 +19,366 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def pretty_print(data: Dict[str, Any]) -> None:
+def pretty_print(data):
     """Print dictionary in a readable format."""
-    print(json.dumps(data, indent=4, default=str))
+    if isinstance(data, dict):
+        print(json.dumps(data, indent=4, default=str))
+    else:
+        print(data)
 
-def plot_wind_data(wind_data: Dict[str, Any], title: str = "Wind Data") -> None:
-    """
-    Create a simple plot of wind data over time.
+def test_basic_forecast():
+    """Test 1: Basic forecast with minimal parameters."""
+    logger.info("\n=== TEST 1: Basic Forecast with Minimal Parameters ===")
     
-    Args:
-        wind_data: Wind data dictionary from WindyConnector
-        title: Plot title
-    """
-    if "levels" not in wind_data or not wind_data["levels"]:
-        logger.error("No wind level data to plot")
-        return
-        
-    # Get timestamps
-    timestamps = wind_data.get("forecast_time", [])
-    if not timestamps:
-        logger.error("No timestamp data found")
-        return
-        
-    # Format x-axis labels
-    x_labels = [t.strftime("%m-%d %H:%M") if t else "" for t in timestamps]
-    x = range(len(x_labels))
-    
-    # Create figure with subplots
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
-    fig.suptitle(title)
-    
-    # Plot wind speed for each level
-    for level_name, level_data in wind_data["levels"].items():
-        if "wind_speed" in level_data:
-            ax1.plot(x, level_data["wind_speed"], label=f"{level_name}")
-    
-    ax1.set_ylabel("Wind Speed (m/s)")
-    ax1.set_title("Wind Speed by Flight Level")
-    ax1.grid(True)
-    ax1.legend()
-    
-    # Plot wind direction for first level only (to avoid clutter)
-    first_level = next(iter(wind_data["levels"]))
-    if "wind_direction" in wind_data["levels"][first_level]:
-        directions = wind_data["levels"][first_level]["wind_direction"]
-        ax2.plot(x, directions, 'o-', label=f"{first_level} Direction")
-        
-    ax2.set_ylabel("Wind Direction (degrees)")
-    ax2.set_title("Wind Direction")
-    ax2.set_ylim(0, 360)
-    ax2.set_yticks(np.arange(0, 361, 45))
-    ax2.set_yticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'])
-    ax2.grid(True)
-    
-    # Set x-axis labels
-    plt.xticks(x[::3], x_labels[::3], rotation=45)
-    plt.tight_layout()
-    
-    # Save the figure
-    plt.savefig("wind_data_plot.png")
-    logger.info("Wind data plot saved to wind_data_plot.png")
-    plt.close()
-
-def plot_route_winds(route_winds: Dict[str, Any], title: str = "Route Winds") -> None:
-    """
-    Create a plot of wind conditions along a route.
-    
-    Args:
-        route_winds: Route winds data from WindyConnector
-        title: Plot title
-    """
-    if "points" not in route_winds or not route_winds["points"]:
-        logger.error("No route point data to plot")
-        return
-        
-    # Extract data for plotting
-    positions = []
-    headwinds = []
-    crosswinds = []
-    wind_speeds = []
-    
-    for point in route_winds["points"]:
-        if "position" in point:
-            positions.append(point["position"])
-            
-            # Get the first timestamp's data for each point
-            if "headwind_component" in point and point["headwind_component"]:
-                headwinds.append(point["headwind_component"][0])
-            else:
-                headwinds.append(None)
-                
-            if "crosswind_component" in point and point["crosswind_component"]:
-                crosswinds.append(point["crosswind_component"][0])
-            else:
-                crosswinds.append(None)
-                
-            if "wind_speed" in point and point["wind_speed"]:
-                wind_speeds.append(point["wind_speed"][0])
-            else:
-                wind_speeds.append(None)
-    
-    if not positions:
-        logger.error("No position data found")
-        return
-    
-    # Create plot
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
-    fig.suptitle(f"{title} - {route_winds.get('flight_level', '')}")
-    
-    # Plot wind components
-    ax1.plot(positions, headwinds, 'b-', label="Headwind (+) / Tailwind (-)")
-    ax1.plot(positions, crosswinds, 'r-', label="Crosswind")
-    ax1.axhline(y=0, color='k', linestyle='--', alpha=0.3)
-    ax1.set_ylabel("Wind Component (m/s)")
-    ax1.set_title("Wind Components Along Route")
-    ax1.grid(True)
-    ax1.legend()
-    
-    # Plot total wind speed
-    ax2.plot(positions, wind_speeds, 'g-', label="Wind Speed")
-    ax2.set_xlabel("Route Position")
-    ax2.set_ylabel("Wind Speed (m/s)")
-    ax2.set_title("Total Wind Speed Along Route")
-    ax2.grid(True)
-    ax2.legend()
-    
-    plt.tight_layout()
-    plt.savefig("route_winds_plot.png")
-    logger.info("Route winds plot saved to route_winds_plot.png")
-    plt.close()
-
-def test_windy_connector():
-    """Test the Windy connector."""
-    logger.info("============ TESTING WINDY CONNECTOR ============")
-    
-    # Get API key from environment variable
-    api_key = os.environ.get("WINDY_API_KEY")
-    if not api_key:
-        logger.error("WINDY_API_KEY environment variable not set")
-        return
-    
-    # Initialize the connector
+    # api_key = os.environ.get("WINDY_API_KEY")
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
     windy = WindyConnector(api_key=api_key)
     
-    # TEST 1: Get basic forecast for a location (New York City)
-    logger.info("\n=== TEST 1: Basic Weather Forecast ===")
-    try:
-        coords = (40.7128, -74.0060)  # New York City
-        parameters = ["wind", "temp", "pressure", "rh", "clouds", "precip"]
-        levels = ["surface", "850h", "500h"]
+    # Start with minimal parameters - just temperature
+    coords = (40.7128, -74.0060)  # New York City
+    forecast = windy.get_forecast(
+        lat=coords[0],
+        lon=coords[1],
+        model="gfs",
+        parameters=["temp"],
+        levels=["surface"]
+    )
+    
+    if "error" in forecast:
+        logger.error(f"Error: {forecast['error']}")
+        return False
+        
+    logger.info("✅ Basic forecast successful")
+    logger.info(f"Number of timestamps: {len(forecast.get('forecast_time', []))}")
+    
+    # Sample the first temperature value
+    temp_key = next((k for k in forecast.keys() if k.startswith("temp-surface")), None)
+    if temp_key and temp_key in forecast and forecast[temp_key]:
+        temp_k = forecast[temp_key][0]
+        temp_c = round(temp_k - 273.15, 1) if temp_k else None
+        logger.info(f"First temperature reading: {temp_c}°C")
+    
+    return True
+
+def test_multiple_parameters():
+    """Test 2: Multiple weather parameters."""
+    logger.info("\n=== TEST 2: Multiple Weather Parameters ===")
+    
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
+    
+    # Use multiple supported parameters
+    coords = (40.7128, -74.0060)  # New York City
+    parameters = ["temp", "wind", "rh", "pressure", "dewpoint"]
+    
+    forecast = windy.get_forecast(
+        lat=coords[0],
+        lon=coords[1],
+        model="gfs",
+        parameters=parameters,
+        levels=["surface"]
+    )
+    
+    if "error" in forecast:
+        logger.error(f"Error: {forecast['error']}")
+        return False
+        
+    logger.info("✅ Multiple parameters forecast successful")
+    logger.info(f"Available parameters: {[k.split('-')[0] for k in forecast.keys() if '-' in k]}")
+    
+    return True
+
+def test_multiple_levels():
+    """Test 3: Multiple altitude levels."""
+    logger.info("\n=== TEST 3: Multiple Altitude Levels ===")
+    
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
+    
+    # Use parameters that support multiple levels
+    coords = (40.7128, -74.0060)  # New York City
+    parameters = ["wind", "temp", "rh"]  # These support multiple levels
+    levels = ["surface", "850h", "500h"]
+    
+    forecast = windy.get_forecast(
+        lat=coords[0],
+        lon=coords[1],
+        model="gfs",
+        parameters=parameters,
+        levels=levels
+    )
+    
+    if "error" in forecast:
+        logger.error(f"Error: {forecast['error']}")
+        return False
+        
+    logger.info("✅ Multiple levels forecast successful")
+    
+    # Check that we have data for different levels
+    level_keys = []
+    for level in levels:
+        for param in parameters:
+            if param == "wind":
+                u_key = f"wind_u-{level}"
+                v_key = f"wind_v-{level}"
+                if u_key in forecast and v_key in forecast:
+                    level_keys.extend([u_key, v_key])
+            else:
+                key = f"{param}-{level}"
+                if key in forecast:
+                    level_keys.append(key)
+    
+    logger.info(f"Level-specific data keys: {level_keys}")
+    
+    return True
+
+def test_different_models():
+    """Test 4: Different weather models."""
+    logger.info("\n=== TEST 4: Different Weather Models ===")
+    
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
+    
+    # Test multiple models
+    coords = (40.7128, -74.0060)  # New York City
+    models = ["gfs", "iconEu"]  # Test a couple of models
+    
+    success = True
+    for model in models:
+        logger.info(f"Testing model: {model}")
+        
+        # Get model-specific supported parameters
+        params = windy._get_model_supported_params(model)[:3]  # Just use first 3 parameters
         
         forecast = windy.get_forecast(
             lat=coords[0],
             lon=coords[1],
-            model="gfs",
-            parameters=parameters,
-            levels=levels
+            model=model,
+            parameters=params,
+            levels=["surface"]
         )
         
         if "error" in forecast:
-            logger.error(f"Error getting forecast: {forecast['error']}")
-        else:
-            logger.info(f"Successfully retrieved forecast for New York City")
-            logger.info(f"Forecast times: {len(forecast.get('forecast_time', []))} timestamps")
-            logger.info(f"Available parameters: {[k for k in forecast.keys() if k not in ['forecast_time', 'units']]}")
+            logger.error(f"Error with model {model}: {forecast['error']}")
+            success = False
+            continue
             
-            # Sample temperature data
-            temp_key = next((k for k in forecast.keys() if k.startswith("temp-surface")), None)
-            if temp_key and temp_key in forecast:
-                temps_k = forecast[temp_key][:3]  # First 3 values
-                temps_c = [round(t - 273.15, 1) if t is not None else None for t in temps_k]
-                logger.info(f"Sample surface temperatures (°C): {temps_c}")
-    except Exception as e:
-        logger.error(f"Error in TEST 1: {str(e)}")
+        logger.info(f"✅ Model {model} forecast successful with parameters {params}")
+        
+        # Add a delay to avoid rate limiting
+        time.sleep(1)
     
-    # TEST 2: Get aviation weather at different flight levels
-    logger.info("\n=== TEST 2: Aviation Weather Data ===")
-    try:
-        coords = (40.7128, -74.0060)  # New York City
-        flight_levels = ["FL050", "FL100", "FL200", "FL350"]
-        
-        aviation_weather = windy.get_aviation_weather(
-            lat=coords[0],
-            lon=coords[1],
-            flight_levels=flight_levels,
-            model="gfs"
-        )
-        
-        if "error" in aviation_weather:
-            logger.error(f"Error getting aviation weather: {aviation_weather['error']}")
-        else:
-            logger.info(f"Successfully retrieved aviation weather data")
-            logger.info(f"Available flight levels: {list(aviation_weather.get('flight_levels', {}).keys())}")
-            
-            # Sample wind data for FL200
-            if "flight_levels" in aviation_weather and "FL200" in aviation_weather["flight_levels"]:
-                fl_data = aviation_weather["flight_levels"]["FL200"]
-                if "wind_speed" in fl_data and fl_data["wind_speed"]:
-                    logger.info(f"Sample FL200 wind speeds (m/s): {fl_data['wind_speed'][:3]}")
-                if "wind_direction" in fl_data and fl_data["wind_direction"]:
-                    logger.info(f"Sample FL200 wind directions: {fl_data['wind_direction'][:3]}")
-            
-            # Show turbulence data
-            if "derived" in aviation_weather and "turbulence" in aviation_weather["derived"]:
-                turbulence = aviation_weather["derived"]["turbulence"]
-                if "level" in turbulence and turbulence["level"]:
-                    logger.info(f"Sample turbulence levels: {turbulence['level'][:3]}")
-    except Exception as e:
-        logger.error(f"Error in TEST 2: {str(e)}")
+    return success
+
+def test_aviation_weather():
+    """Test 5: Aviation weather data."""
+    logger.info("\n=== TEST 5: Aviation Weather Data ===")
     
-    # TEST 3: Get weather data for a flight route
-    logger.info("\n=== TEST 3: Route Weather Data ===")
-    try:
-        # Sample route from NY to Chicago
-        route_coords = [
-            (40.7128, -74.0060),  # New York
-            (41.8781, -87.6298)   # Chicago
-        ]
-        
-        parameters = ["wind", "temp", "clouds", "precip"]
-        levels = ["surface", "700h"]
-        
-        route_forecast = windy.get_route_forecast(
-            route_coords=route_coords,
-            model="gfs",
-            parameters=parameters,
-            levels=levels,
-            route_segments=5  # Generate 5 points along the route
-        )
-        
-        if "error" in route_forecast:
-            logger.error(f"Error getting route forecast: {route_forecast['error']}")
-        elif "forecasts" not in route_forecast or not route_forecast["forecasts"]:
-            logger.error("No route forecast data found")
-        else:
-            logger.info(f"Successfully retrieved route forecast data")
-            logger.info(f"Route metadata: {route_forecast['metadata']}")
-            logger.info(f"Number of route points: {len(route_forecast['forecasts'])}")
-            
-            # Sample data from first point
-            first_point = next(iter(route_forecast["forecasts"]))
-            point_data = route_forecast["forecasts"][first_point]
-            logger.info(f"First point coordinates: {point_data.get('coordinates', {})}")
-    except Exception as e:
-        logger.error(f"Error in TEST 3: {str(e)}")
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
     
-    # TEST 4: Get turbulence forecast
-    logger.info("\n=== TEST 4: Turbulence Forecast ===")
-    try:
-        coords = (40.7128, -74.0060)  # New York City
-        flight_level = "FL350"
-        
-        turbulence = windy.get_turbulence_forecast(
-            lat=coords[0],
-            lon=coords[1],
-            flight_level=flight_level,
-            model="gfs"
-        )
-        
-        if "error" in turbulence:
-            logger.error(f"Error getting turbulence forecast: {turbulence['error']}")
-        else:
-            logger.info(f"Successfully retrieved turbulence forecast")
-            logger.info(f"Flight level: {turbulence.get('flight_level')}")
-            
-            if "level" in turbulence and turbulence["level"]:
-                logger.info(f"Turbulence levels: {turbulence['level'][:3]}")
-            
-            if "contributors" in turbulence:
-                logger.info(f"Turbulence contributors: {list(turbulence['contributors'].keys())}")
-    except Exception as e:
-        logger.error(f"Error in TEST 4: {str(e)}")
+    # Test aviation weather at different flight levels
+    coords = (40.7128, -74.0060)  # New York City
+    flight_levels = ["FL100", "FL300"]
     
-    # TEST 5: Get icing forecast
-    logger.info("\n=== TEST 5: Icing Forecast ===")
-    try:
-        coords = (40.7128, -74.0060)  # New York City
-        flight_level = "FL180"
-        
-        icing = windy.get_icing_forecast(
-            lat=coords[0],
-            lon=coords[1],
-            flight_level=flight_level,
-            model="gfs"
-        )
-        
-        if "error" in icing:
-            logger.error(f"Error getting icing forecast: {icing['error']}")
-        else:
-            logger.info(f"Successfully retrieved icing forecast")
-            logger.info(f"Flight level: {icing.get('flight_level')}")
-            
-            if "risk_level" in icing and icing["risk_level"]:
-                logger.info(f"Icing risk levels: {icing['risk_level'][:3]}")
-            
-            if "icing_type" in icing and icing["icing_type"]:
-                logger.info(f"Icing types: {icing['icing_type'][:3]}")
-    except Exception as e:
-        logger.error(f"Error in TEST 5: {str(e)}")
+    aviation_weather = windy.get_aviation_weather(
+        lat=coords[0],
+        lon=coords[1],
+        flight_levels=flight_levels,
+        model="gfs"
+    )
     
-    # TEST 6: Get detailed wind data
-    logger.info("\n=== TEST 6: Detailed Wind Data ===")
-    try:
-        coords = (40.7128, -74.0060)  # New York City
-        flight_levels = ["FL100", "FL200", "FL300"]
+    if "error" in aviation_weather:
+        logger.error(f"Error: {aviation_weather['error']}")
+        return False
         
-        wind_data = windy.get_wind_data(
-            lat=coords[0],
-            lon=coords[1],
-            flight_levels=flight_levels,
-            model="gfs"
-        )
-        
-        if "error" in wind_data:
-            logger.error(f"Error getting wind data: {wind_data['error']}")
-        else:
-            logger.info(f"Successfully retrieved wind data")
-            logger.info(f"Available levels: {list(wind_data.get('levels', {}).keys())}")
-            
-            # Create a visualization
-            try:
-                plot_wind_data(wind_data, "New York City Wind Forecast")
-            except Exception as e:
-                logger.error(f"Error creating wind visualization: {str(e)}")
-    except Exception as e:
-        logger.error(f"Error in TEST 6: {str(e)}")
+    logger.info("✅ Aviation weather data successful")
+    logger.info(f"Retrieved data for flight levels: {list(aviation_weather.get('flight_levels', {}).keys())}")
     
-    # TEST 7: Get route winds
-    logger.info("\n=== TEST 7: Route Winds ===")
-    try:
-        # Route from London to Paris
-        route_coords = [
-            (51.5074, -0.1278),  # London
-            (48.8566, 2.3522)     # Paris
-        ]
-        
-        flight_level = "FL300"
-        
-        route_winds = windy.get_route_winds(
-            route_coords=route_coords,
-            flight_level=flight_level,
-            model="gfs",
-            route_segments=8
-        )
-        
-        if "error" in route_winds:
-            logger.error(f"Error getting route winds: {route_winds['error']}")
-        else:
-            logger.info(f"Successfully retrieved route winds")
-            logger.info(f"Flight level: {route_winds.get('flight_level')}")
-            logger.info(f"Route length: {route_winds.get('route_length_km')} km")
-            logger.info(f"Number of points: {route_winds.get('point_count')}")
-            
-            # Create a visualization
-            try:
-                plot_route_winds(route_winds, "London to Paris Route")
-            except Exception as e:
-                logger.error(f"Error creating route winds visualization: {str(e)}")
-    except Exception as e:
-        logger.error(f"Error in TEST 7: {str(e)}")
+    # Check for derived metrics
+    if "derived" in aviation_weather:
+        logger.info(f"Derived metrics: {list(aviation_weather['derived'].keys())}")
     
-    # TEST 8: Get airport weather
-    logger.info("\n=== TEST 8: Airport Weather ===")
-    try:
-        icao_code = "KJFK"  # JFK Airport
-        
-        airport_weather = windy.get_airport_weather(
-            icao_code=icao_code,
-            model="gfs"
-        )
-        
-        if "error" in airport_weather:
-            logger.error(f"Error getting airport weather: {airport_weather['error']}")
-        else:
-            logger.info(f"Successfully retrieved weather for {icao_code}")
-            logger.info(f"Airport location: {airport_weather.get('location', {})}")
-            
-            # Sample surface conditions
-            if "surface_conditions" in airport_weather:
-                surface = airport_weather["surface_conditions"]
-                if "temperature_c" in surface and surface["temperature_c"]:
-                    logger.info(f"Surface temperature (°C): {surface['temperature_c'][0]}")
-                if "wind_speed" in surface and surface["wind_speed"]:
-                    logger.info(f"Surface wind speed (m/s): {surface['wind_speed'][0]}")
-                if "wind_direction" in surface and surface["wind_direction"]:
-                    logger.info(f"Surface wind direction: {surface['wind_direction'][0]}")
-    except Exception as e:
-        logger.error(f"Error in TEST 8: {str(e)}")
+    return True
+
+def test_route_forecast():
+    """Test 6: Route forecast."""
+    logger.info("\n=== TEST 6: Route Forecast ===")
     
-    # TEST 9: Get significant weather
-    logger.info("\n=== TEST 9: Significant Weather ===")
-    try:
-        coords = (40.7128, -74.0060)  # New York City
-        radius_km = 100.0
-        
-        significant_weather = windy.get_significant_weather(
-            lat=coords[0],
-            lon=coords[1],
-            radius_km=radius_km,
-            model="gfs"
-        )
-        
-        if "error" in significant_weather:
-            logger.error(f"Error getting significant weather: {significant_weather['error']}")
-        else:
-            logger.info(f"Successfully retrieved significant weather")
-            logger.info(f"Center point: {significant_weather.get('center_point', {})}")
-            logger.info(f"Analyzed radius: {significant_weather.get('radius_km')} km")
-            
-            # Report significant weather events
-            events = significant_weather.get("significant_weather", {})
-            for event_type, event_list in events.items():
-                if event_list:
-                    logger.info(f"Found {len(event_list)} {event_type} events")
-    except Exception as e:
-        logger.error(f"Error in TEST 9: {str(e)}")
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
     
-    # TEST 10: Generate visualization URL
-    logger.info("\n=== TEST 10: Visualization URL ===")
-    try:
-        coords = (40.7128, -74.0060)  # New York City
-        
-        url = windy.get_visualization_url(
-            lat=coords[0],
-            lon=coords[1],
-            zoom=7,
-            overlay="wind",
-            level="500h"
-        )
-        
-        logger.info(f"Windy visualization URL: {url}")
-    except Exception as e:
-        logger.error(f"Error in TEST 10: {str(e)}")
+    # Test a simple route with two points
+    route = [
+        (51.5074, -0.1278),  # London
+        (48.8566, 2.3522)     # Paris
+    ]
     
-    logger.info("\n============ WINDY CONNECTOR TEST COMPLETE ============")
+    # Use minimal parameters
+    parameters = ["temp", "wind"]
+    
+    route_forecast = windy.get_route_forecast(
+        route_coords=route,
+        model="gfs",
+        parameters=parameters,
+        levels=["surface"],
+        route_segments=4  # Generate 4 points total
+    )
+    
+    if "error" in route_forecast:
+        logger.error(f"Error: {route_forecast['error']}")
+        return False
+        
+    logger.info("✅ Route forecast successful")
+    logger.info(f"Route metadata: {route_forecast['metadata']}")
+    logger.info(f"Number of route points: {len(route_forecast['forecasts'])}")
+    
+    # Verify each point has coordinates
+    points_with_coords = 0
+    for point_name, forecast in route_forecast['forecasts'].items():
+        if "coordinates" in forecast:
+            points_with_coords += 1
+    
+    logger.info(f"Points with valid coordinates: {points_with_coords} out of {len(route_forecast['forecasts'])}")
+    
+    return points_with_coords > 0
+
+def test_turbulence_forecast():
+    """Test 7: Turbulence forecast."""
+    logger.info("\n=== TEST 7: Turbulence Forecast ===")
+    
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
+    
+    # Test turbulence forecast at a flight level
+    coords = (40.7128, -74.0060)  # New York City
+    flight_level = "FL300"
+    
+    turbulence = windy.get_turbulence_forecast(
+        lat=coords[0],
+        lon=coords[1],
+        flight_level=flight_level,
+        model="gfs"
+    )
+    
+    if "error" in turbulence:
+        logger.error(f"Error: {turbulence['error']}")
+        return False
+        
+    logger.info("✅ Turbulence forecast successful")
+    logger.info(f"Flight level: {turbulence.get('flight_level')}")
+    
+    # Check turbulence levels
+    if "level" in turbulence and turbulence["level"]:
+        logger.info(f"First turbulence level: {turbulence['level'][0]}")
+    
+    return True
+
+def test_visualization_url():
+    """Test 8: Visualization URL generation."""
+    logger.info("\n=== TEST 8: Visualization URL Generation ===")
+    
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
+    
+    # Generate visualization URL
+    coords = (40.7128, -74.0060)  # New York City
+    
+    url = windy.get_visualization_url(
+        lat=coords[0],
+        lon=coords[1],
+        zoom=7,
+        overlay="temp",
+        level="500h"
+    )
+    
+    logger.info(f"Visualization URL: {url}")
+    logger.info("✅ Visualization URL generation successful")
+    
+    return True
+
+def test_wind_data():
+    """Test 9: Detailed wind data."""
+    logger.info("\n=== TEST 9: Detailed Wind Data ===")
+    
+    api_key = "ymAvnkZvsbZpxgMVlHabWuDIG6ZgHsJd"
+    windy = WindyConnector(api_key=api_key)
+    
+    # Get wind data at different flight levels
+    coords = (40.7128, -74.0060)  # New York City
+    flight_levels = ["FL100", "FL200"]
+    
+    wind_data = windy.get_wind_data(
+        lat=coords[0],
+        lon=coords[1],
+        flight_levels=flight_levels,
+        model="gfs"
+    )
+    
+    if "error" in wind_data:
+        logger.error(f"Error: {wind_data['error']}")
+        return False
+        
+    logger.info("✅ Wind data retrieval successful")
+    logger.info(f"Available levels: {list(wind_data.get('levels', {}).keys())}")
+    
+    # Check wind data for one level
+    if flight_levels[0] in wind_data.get('levels', {}):
+        level_data = wind_data['levels'][flight_levels[0]]
+        if "wind_speed" in level_data and level_data["wind_speed"]:
+            logger.info(f"First wind speed value at {flight_levels[0]}: {level_data['wind_speed'][0]} m/s")
+        if "wind_direction" in level_data and level_data["wind_direction"]:
+            logger.info(f"First wind direction at {flight_levels[0]}: {level_data['wind_direction'][0]}°")
+    
+    return True
+
+def run_all_tests():
+    """Run all tests with proper rate limiting."""
+    tests = [
+        test_basic_forecast,
+        test_multiple_parameters,
+        test_multiple_levels,
+        test_different_models,
+        test_aviation_weather,
+        test_route_forecast,
+        test_turbulence_forecast,
+        test_visualization_url,
+        test_wind_data
+    ]
+    
+    results = []
+    
+    for i, test_func in enumerate(tests):
+        logger.info(f"\nRunning test {i+1}/{len(tests)}: {test_func.__name__}")
+        
+        try:
+            success = test_func()
+            results.append((test_func.__name__, success))
+        except Exception as e:
+            logger.error(f"Error in {test_func.__name__}: {str(e)}")
+            results.append((test_func.__name__, False))
+        
+        # Add delay between tests to avoid rate limiting
+        if i < len(tests) - 1:
+            logger.info("Waiting 2 seconds before next test...")
+            time.sleep(2)
+    
+    # Summary of results
+    logger.info("\n=== TEST RESULTS SUMMARY ===")
+    successes = 0
+    for name, success in results:
+        status = "✅ PASS" if success else "❌ FAIL"
+        logger.info(f"{status}: {name}")
+        if success:
+            successes += 1
+    
+    logger.info(f"\nTotal: {successes}/{len(tests)} tests passed")
 
 if __name__ == "__main__":
-    test_windy_connector()
+    # Check if API key is set
+    # if not os.environ.get("WINDY_API_KEY"):
+    #     logger.error("WINDY_API_KEY environment variable not set")
+    #     sys.exit(1)
+    
+    # Run all tests
+    run_all_tests()

@@ -5,3 +5,4 @@ pydantic
 # Data Collection
 requests
 aiohttp
+numpy

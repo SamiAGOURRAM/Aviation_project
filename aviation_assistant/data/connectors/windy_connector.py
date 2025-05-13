@@ -154,19 +154,6 @@ class WindyConnector:
                     levels: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Retrieve detailed weather forecast for a specific location.
-        
-        Args:
-            lat: Latitude in decimal degrees
-            lon: Longitude in decimal degrees
-            model: Weather model to use (default: "gfs")
-                  Available models: gfs, ecmwf, iconEu, namConus, arome, etc.
-            parameters: List of weather parameters to include
-                       Available parameters: wind, temp, rh, pressure, etc.
-            levels: List of altitude/pressure levels
-                   Available levels: surface, 1000h, 850h, 700h, etc.
-            
-        Returns:
-            Detailed weather forecast data
         """
         # Validate inputs
         if not self._validate_coordinates(lat, lon):
@@ -175,56 +162,110 @@ class WindyConnector:
         
         # Validate and set default parameters
         if parameters is None:
-            parameters = ["wind", "temp", "pressure", "rh", "clouds"]
+            parameters = ["wind", "temp", "dewpoint", "pressure", "rh"]
         else:
-            parameters = self._validate_parameters(parameters)
+            # Replace any "clouds" with the specific cloud parameters
+            if "clouds" in parameters:
+                parameters.remove("clouds")
+                if "lclouds" not in parameters: parameters.append("lclouds")
+                if "mclouds" not in parameters: parameters.append("mclouds") 
+                if "hclouds" not in parameters: parameters.append("hclouds")
+        
+        # Validate parameter-model compatibility
+        supported_params = self._get_model_supported_params(model)
+        parameters = [p for p in parameters if p in supported_params]
+        
+        if not parameters:
+            return {"error": f"No valid parameters for model {model}"}
         
         # Validate and set default levels
         if levels is None:
             levels = ["surface"]
-        else:
-            levels = self._validate_levels(levels)
-            
-        # Validate model
-        if model not in self.AVAILABLE_MODELS:
-            self.logger.warning(f"Unknown model: {model}, using 'gfs' instead")
-            model = "gfs"
+        
+        # Filter levels for parameters that support them
+        # Only wind, dewpoint, temp, gh, rh support multiple levels
+        level_supported_params = ["wind", "dewpoint", "temp", "gh", "rh"]
+        if not any(p in level_supported_params for p in parameters) and levels != ["surface"]:
+            self.logger.warning(f"Using only surface level because none of the parameters support multiple levels")
+            levels = ["surface"]
         
         # Construct payload
         payload = {
-            "lat": round(lat, 6),
-            "lon": round(lon, 6),
+            "lat": lat,
+            "lon": lon,
             "model": model,
             "parameters": parameters,
             "levels": levels,
             "key": self.api_key
         }
         
+        # Set explicit headers
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        
         try:
-            response = self.session.post(self.base_url, json=payload, timeout=30)
+            self.logger.debug(f"Sending payload to Windy API: {payload}")
+            response = self.session.post(self.base_url, json=payload, headers=headers, timeout=30)
+            
+            # Log response for debugging
+            self.logger.debug(f"Response status: {response.status_code}")
+            if response.status_code != 200:
+                self.logger.debug(f"Response text: {response.text}")
+            
             response.raise_for_status()
-            forecast_data = response.json()
+            data = response.json()
             
-            # Check for API error messages
-            if "error" in forecast_data:
-                self.logger.error(f"API Error: {forecast_data['error']}")
-                return {"error": forecast_data['error']}
-                
-            # Check for warning messages
-            if "warning" in forecast_data:
-                self.logger.warning(f"API Warning: {forecast_data['warning']}")
+            # Check for warning message
+            if "warning" in data:
+                self.logger.warning(f"Windy API warning: {data['warning']}")
             
-            # Process and format the response
-            processed_data = self._process_forecast_data(forecast_data)
-            return processed_data
-            
+            return self._process_forecast_data(data)
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Error fetching Windy forecast for {lat},{lon}: {str(e)}")
             return {"error": str(e)}
-        except ValueError as e:
-            self.logger.error(f"Error parsing response: {str(e)}")
-            return {"error": f"Error parsing response: {str(e)}"}
-    
+    def _get_model_supported_params(self, model: str) -> List[str]:
+        """Return parameters supported by the specified model."""
+        model = model.lower()
+        
+        # Reference from documentation table
+        model_param_map = {
+            "arome": ["temp", "dewpoint", "precip", "convPrecip", "wind", "windGust", 
+                    "cape", "ptype", "lclouds", "mclouds", "hclouds", "rh"],
+            
+            "iconeu": ["temp", "dewpoint", "precip", "convPrecip", "snowPrecip", "wind", 
+                    "windGust", "cape", "ptype", "lclouds", "mclouds", "hclouds", 
+                    "rh", "gh", "pressure"],
+            
+            "gfs": ["temp", "dewpoint", "precip", "convPrecip", "snowPrecip", "wind", 
+                "windGust", "cape", "ptype", "lclouds", "mclouds", "hclouds", 
+                "rh", "gh", "pressure"],
+            
+            "gfswave": ["waves", "windWaves", "swell1", "swell2"],
+            
+            "namconus": ["temp", "dewpoint", "precip", "convPrecip", "snowPrecip", "wind", 
+                        "windGust", "cape", "ptype", "lclouds", "mclouds", "hclouds", 
+                        "rh", "gh", "pressure"],
+            
+            "namhawaii": ["temp", "dewpoint", "precip", "convPrecip", "snowPrecip", "wind", 
+                        "windGust", "cape", "ptype", "lclouds", "mclouds", "hclouds", 
+                        "rh", "gh", "pressure"],
+            
+            "namalaska": ["temp", "dewpoint", "precip", "convPrecip", "snowPrecip", "wind", 
+                        "windGust", "cape", "ptype", "lclouds", "mclouds", "hclouds", 
+                        "rh", "gh", "pressure"],
+            
+            "cams": ["so2sm", "dustsm", "cosc"]
+        }
+        
+        # Check if model is in our map
+        if model in model_param_map:
+            return model_param_map[model]
+        
+        # Default to GFS parameters if model not recognized
+        self.logger.warning(f"Model '{model}' not recognized, defaulting to GFS parameters")
+        return model_param_map["gfs"]   
     def get_route_forecast(self, 
                           route_coords: List[Tuple[float, float]], 
                           model: str = "gfs",
@@ -285,26 +326,14 @@ class WindyConnector:
             "metadata": route_metadata,
             "forecasts": forecasts
         }
-    
+
     def get_aviation_weather(self,
-                           lat: float,
-                           lon: float,
-                           flight_levels: Union[List[str], str],
-                           model: str = "gfs") -> Dict[str, Any]:
+                       lat: float,
+                       lon: float,
+                       flight_levels: Union[List[str], str],
+                       model: str = "gfs") -> Dict[str, Any]:
         """
         Retrieve aviation-specific weather forecast for a location.
-        
-        Includes data relevant for pilots like wind at various altitudes,
-        turbulence, icing conditions, and visibility information.
-        
-        Args:
-            lat: Latitude in decimal degrees
-            lon: Longitude in decimal degrees
-            flight_levels: Flight level(s) (e.g., "FL100", "FL180", "FL350") or list of flight levels
-            model: Weather model to use (default: "gfs")
-            
-        Returns:
-            Aviation weather forecast
         """
         # Handle single flight level or list
         if isinstance(flight_levels, str):
@@ -324,22 +353,23 @@ class WindyConnector:
             levels.append(pressure_level)
             flight_level_mappings[pressure_level] = fl
         
-        # Aviation-specific parameters
-        parameters = [
-            "wind",         # Wind (u,v components)
-            "temp",         # Temperature
-            "rh",           # Relative humidity
-            "pressure",     # Pressure
-            "clouds",       # Cloud cover
-            "lclouds",      # Low cloud cover
-            "mclouds",      # Medium cloud cover
-            "hclouds",      # High cloud cover
-            "cape",         # Convective Available Potential Energy (thunderstorm potential)
-            "dewpoint",     # Dewpoint
-            "gust",         # Wind gust
-            "visibility",   # Visibility
-            "freezingLevel" # Freezing level altitude
+        # Aviation-specific parameters that are supported by the model
+        aviation_params = [
+            "wind",      # Wind (u,v components)
+            "temp",      # Temperature
+            "rh",        # Relative humidity
+            "dewpoint",  # Dewpoint
+            "lclouds",   # Low cloud cover
+            "mclouds",   # Medium cloud cover
+            "hclouds",   # High cloud cover
+            "cape",      # Convective Available Potential Energy
+            "pressure",  # Pressure
+            "windGust"   # Wind gust
         ]
+        
+        # Only include parameters supported by the selected model
+        model_params = self._get_model_supported_params(model)
+        parameters = [p for p in aviation_params if p in model_params]
         
         # Get the forecast
         forecast = self.get_forecast(lat, lon, model, parameters, levels)
@@ -354,9 +384,7 @@ class WindyConnector:
         aviation_data["derived"] = {
             "turbulence": self._calculate_turbulence(forecast),
             "icing_risk": self._calculate_icing_risk(forecast),
-            "wind_shear": self._calculate_wind_shear(forecast),
-            "crosswind_component": self._calculate_crosswind(forecast, 0),  # Default runway heading of 0
-            "thermal_updrafts": self._estimate_thermal_updrafts(forecast)
+            "wind_shear": self._calculate_wind_shear(forecast)
         }
         
         # Add location information
@@ -366,7 +394,6 @@ class WindyConnector:
         }
         
         return aviation_data
-    
     def get_airport_weather(self,
                            icao_code: str,
                            model: str = "gfs") -> Dict[str, Any]:
