@@ -1,0 +1,133 @@
+AVWX CONNECTOR TEST RESULTS
+==========================
+
+Test conducted on: 2025-05-13 18:48:39 UTC
+
+1. BASIC WEATHER DATA METHODS
+-----------------------------
+
+1.1 METAR Retrieval
+METAR for KJFK:
+Raw METAR: KJFK 131833Z 12008KT 10SM -RA BKN015 BKN035 OVC090 18/16 A3021 RMK AO2 P0000 T01830156
+Flight Rules: MVFR
+Temperature: 18°C
+Dewpoint: 16°C
+
+1.2 TAF Retrieval
+TAF for KJFK:
+Raw TAF: KJFK 131730Z 1318/1424 13010KT P6SM SCT030 BKN060 FM132000 12011KT 6SM -SHRA SCT025 BKN030 OVC060 FM132200 10010KT 4SM -SHRA BR SCT007 BKN015 OVC025 FM140400 10010KT 3SM -SHRA BR BKN007 FM141200 09014KT 2SM -SHRA BR BKN005 TEMPO 1418/1422 1/2SM DZ FG OVC004
+Forecast Periods: 6
+  Period 1: 2025-05-13T18:00:00Z to 2025-05-13T20:00:00Z
+    Flight Rules: VFR
+    Visibility: P6
+  Period 2: 2025-05-13T20:00:00Z to 2025-05-13T22:00:00Z
+    Flight Rules: MVFR
+    Visibility: 6
+
+2. NEW DATA TYPE METHODS
+----------------------
+
+2.1 NOTAM Retrieval
+NOTAMs for KJFK:
+Error: 403 Client Error: Forbidden for url: https://avwx.rest/api/notam/KJFK
+
+2.2 PIREP Retrieval
+PIREPs near KJFK:
+Error: 403 Client Error: Forbidden for url: https://avwx.rest/api/pirep/KJFK
+
+2.3 AIRSIGMET Retrieval
+AIRSIGMETs:
+Error: 403 Client Error: Forbidden for url: https://avwx.rest/api/airsigmet
+
+2.4 Airport Information Retrieval
+Airport information for KJFK:
+Error: 404 Client Error: Not Found for url: https://avwx.rest/api/airport/KJFK
+
+2.5 Historical METAR Retrieval
+Historical METARs for KJFK (past 6 hours):
+Error: 404 Client Error: Not Found for url: https://avwx.rest/api/historical/metar/KJFK?start=2025-05-13+12%3A48&end=2025-05-13+18%3A48
+
+3. HIGH-LEVEL CONVENIENCE METHODS
+-------------------------------
+
+3.1 Station Summary
+Station summary for KJFK:
+  Has Station Info: Yes
+  Has Airport Info: No
+  Has METAR: Yes
+  Has TAF: Yes
+  Has NOTAMs: No
+  Has PIREPs: No
+
+  Station Info Sample:
+    Name: John F Kennedy International Airport
+    Latitude: 40.639447
+    Longitude: -73.779317
+
+  Current Weather Sample:
+    Time: 2025-05-13T18:33:00Z
+    Flight Rules: MVFR
+    Temperature: 18°C
+
+
+3.2 Nearest Stations
+Nearest stations to (40.639447, -73.779317):
+Error: 400 Client Error: Bad Request for url: https://avwx.rest/api/station/near?lat=40.639447&lon=-73.779317&radius=50&n=5&airport=true
+
+3.3 Route Data
+Route data for KJFK-KLAX:
+Error: 404 Client Error: Not Found for url: https://avwx.rest/api/route?dep=KJFK&dest=KLAX
+
+3.4 Route Summary
+Route summary for KJFK-KLAX:
+  Has Route Data: No
+  Has Departure Info: Yes
+  Has Destination Info: Yes
+  Has Departure Weather: Yes
+  Has Destination Weather: Yes
+  Has Enroute Weather: No
+
+  Weather Comparison:
+    Departure Flight Rules: MVFR
+    Destination Flight Rules: VFR
+    Departure Temperature: 18°C
+    Destination Temperature: 19°C
+    Departure Visibility: 10
+    Destination Visibility: 10
+
+
+4. BATCH AIRPORT INFORMATION
+---------------------------
+
+Airport: KJFK
+  METAR: KJFK 131833Z 12008KT 10SM -RA BKN015 BKN035 OVC090 18/16 A3021 RMK AO2 P0000 T01830156
+  Flight Rules: MVFR
+  TAF Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+  Forecast Periods: 6
+
+Airport: KLAX
+  METAR: KLAX 131753Z 22003KT 10SM FEW027 BKN039 19/08 A3001 RMK AO2 SLP161 T01890083 10189 20133 51006 $
+  Flight Rules: VFR
+  TAF Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+  Forecast Periods: 7
+
+Airport: KORD
+  METAR: KORD 131751Z 08006KT 10SM BKN030 BKN085 BKN250 24/16 A2983 RMK AO2 SLP098 T02390161 10239 20183 56007
+  Flight Rules: MVFR
+  TAF Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+  Forecast Periods: 6
+
+Airport: KSFO
+  METAR: KSFO 131756Z 03006KT 10SM SCT023 16/09 A3008 RMK AO2 SLP186 T01610094 10161 20111 51015
+  Flight Rules: VFR
+  TAF Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+  Forecast Periods: 5
+
+Airport: EGLL
+  METAR: EGLL 131820Z AUTO 07010KT 9999 NCD 20/04 Q1018
+  Flight Rules: VFR
+  TAF Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+  Forecast Periods: 5
+
+
+Test completed successfully.

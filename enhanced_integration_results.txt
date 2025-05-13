@@ -1,0 +1,263 @@
+ENHANCED INTEGRATION TEST RESULTS
+=================================
+
+Test conducted on: 2025-05-13 19:39:07 UTC
+
+1. AIRPORT WEATHER & HAZARDS
+---------------------------
+
+Weather for KJFK:
+------------------------------
+Airport: John F Kennedy International Airport (KJFK)
+
+METAR Summary:
+Raw METAR: KJFK 131933Z 12008KT 10SM -RA FEW015 SCT032 OVC047 18/16 A3020 RMK AO2 RAB29 P0001 T01780156
+Flight category: VFR
+Visibility: 10 SM
+Clouds: FEW at 1500 ft, SCT at 3200 ft, OVC at 4700 ft
+Temperature: 18°C, Dewpoint: 16°C
+
+TAF Summary:
+Raw TAF: KJFK 131730Z 1318/1424 13010KT P6SM SCT030 BKN060 FM132000 12011KT 6SM -SHRA SCT025 BKN030 OVC060 FM132200 10010KT 4SM -SHRA BR SCT007 BKN015 OVC025 FM140400 10010KT 3SM -SHRA BR BKN007 FM141200 09014KT 2SM -SHRA BR BKN005 TEMPO 1418/1422 1/2SM DZ FG OVC004
+Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+Forecast periods:
+  Period 1 (2025-05-13T18:00:00Z to 2025-05-13T20:00:00Z):
+    Flight category: VFR
+    Clouds: SCT at 3000 ft, BKN at 6000 ft
+  Period 2 (2025-05-13T20:00:00Z to 2025-05-13T22:00:00Z):
+    Flight category: MVFR
+    Visibility: 6 SM
+    Clouds: SCT at 2500 ft, BKN at 3000 ft, OVC at 6000 ft
+  Period 3 (2025-05-13T22:00:00Z to 2025-05-14T04:00:00Z):
+    Flight category: MVFR
+    Visibility: 4 SM
+    Clouds: SCT at 700 ft, BKN at 1500 ft, OVC at 2500 ft
+  Period 4 (2025-05-14T04:00:00Z to 2025-05-14T12:00:00Z):
+    Flight category: IFR
+    Visibility: 3 SM
+    Clouds: BKN at 700 ft
+  Period 5 (2025-05-14T12:00:00Z to 2025-05-15T00:00:00Z):
+    Flight category: IFR
+    Visibility: 2 SM
+    Clouds: BKN at 500 ft
+  Period 6 (2025-05-14T18:00:00Z to 2025-05-14T22:00:00Z):
+    Flight category: LIFR
+    Visibility: 0.5 SM
+    Clouds: OVC at 400 ft
+
+Hazardous Conditions:
+  1. Forecast low ceiling: 700 feet (Severity: moderate, Source: TAF)
+  2. Forecast reduced visibility: 2 SM (Severity: moderate, Source: TAF)
+  3. Forecast low ceiling: 500 feet (Severity: moderate, Source: TAF)
+  4. Forecast low visibility: 0.5 SM (Severity: high, Source: TAF)
+  5. Forecast very low ceiling: 400 feet (Severity: high, Source: TAF)
+
+Visualization Links:
+  Wind: https://www.windy.com/?wind,40.639447,-73.779317,9
+  Temperature: https://www.windy.com/?temp,40.639447,-73.779317,9
+  Clouds: https://www.windy.com/?clouds,40.639447,-73.779317,9
+  Cloudtop: https://www.windy.com/?cloudtop,40.639447,-73.779317,9
+  Precipitation: https://www.windy.com/?rain,40.639447,-73.779317,9
+  Turbulence: https://www.windy.com/?turbulence,40.639447,-73.779317,9,i:850h
+  Visibility: https://www.windy.com/?visibility,40.639447,-73.779317,9
+
+==================================================
+
+Weather for KLAX:
+------------------------------
+Airport: Los Angeles International Airport (KLAX)
+
+METAR Summary:
+Raw METAR: KLAX 131853Z 07005KT 10SM FEW028 SCT039 19/10 A3001 RMK AO2 SLP161 T01890100 $
+Flight category: VFR
+Visibility: 10 SM
+Clouds: FEW at 2800 ft, SCT at 3900 ft
+Temperature: 19°C, Dewpoint: 10°C
+
+TAF Summary:
+Raw TAF: KLAX 131746Z 1318/1424 24012KT P6SM FEW020 FM132000 26015G25KT P6SM SKC FM140300 26012KT P6SM SKC FM140600 25005KT P6SM SKC FM141000 09005KT P6SM SCT015 FM141700 15006KT P6SM SCT020 FM141800 25012KT P6SM FEW025 SCT250
+Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+Forecast periods:
+  Period 1 (2025-05-13T18:00:00Z to 2025-05-13T20:00:00Z):
+    Flight category: VFR
+    Clouds: FEW at 2000 ft
+  Period 2 (2025-05-13T20:00:00Z to 2025-05-14T03:00:00Z):
+    Flight category: VFR
+  Period 3 (2025-05-14T03:00:00Z to 2025-05-14T06:00:00Z):
+    Flight category: VFR
+  Period 4 (2025-05-14T06:00:00Z to 2025-05-14T10:00:00Z):
+    Flight category: VFR
+  Period 5 (2025-05-14T10:00:00Z to 2025-05-14T17:00:00Z):
+    Flight category: VFR
+    Clouds: SCT at 1500 ft
+  Period 6 (2025-05-14T17:00:00Z to 2025-05-14T18:00:00Z):
+    Flight category: VFR
+    Clouds: SCT at 2000 ft
+  Period 7 (2025-05-14T18:00:00Z to 2025-05-15T00:00:00Z):
+    Flight category: VFR
+    Clouds: FEW at 2500 ft, SCT at 25000 ft
+
+Visualization Links:
+  Wind: https://www.windy.com/?wind,33.942501,-118.407997,9
+  Temperature: https://www.windy.com/?temp,33.942501,-118.407997,9
+  Clouds: https://www.windy.com/?clouds,33.942501,-118.407997,9
+  Cloudtop: https://www.windy.com/?cloudtop,33.942501,-118.407997,9
+  Precipitation: https://www.windy.com/?rain,33.942501,-118.407997,9
+  Turbulence: https://www.windy.com/?turbulence,33.942501,-118.407997,9,i:850h
+  Visibility: https://www.windy.com/?visibility,33.942501,-118.407997,9
+
+==================================================
+
+Weather for EGLL:
+------------------------------
+Airport: London Heathrow Airport (EGLL)
+
+METAR Summary:
+Raw METAR: EGLL 131920Z AUTO 10010KT 9999 NCD 18/04 Q1018
+Flight category: VFR
+Visibility: 9999 SM
+Temperature: 18°C, Dewpoint: 4°C
+
+TAF Summary:
+Raw TAF: EGLL 131655Z 1318/1424 10012KT CAVOK BECMG 1320/1323 03005KT BECMG 1412/1415 09012KT BECMG 1417/1420 03012KT PROB30 TEMPO 1417/1420 03015G25KT
+Valid: 2025-05-13T18:00:00Z to 2025-05-15T00:00:00Z
+Forecast periods:
+  Period 1 (2025-05-13T18:00:00Z to 2025-05-13T20:00:00Z):
+    Flight category: VFR
+    Visibility: 9999 SM
+  Period 2 (2025-05-13T23:00:00Z to 2025-05-14T12:00:00Z):
+    Flight category: VFR
+  Period 3 (2025-05-14T15:00:00Z to 2025-05-14T17:00:00Z):
+    Flight category: VFR
+  Period 4 (2025-05-14T20:00:00Z to 2025-05-15T00:00:00Z):
+    Flight category: VFR
+  Period 5 (2025-05-14T17:00:00Z to 2025-05-14T20:00:00Z) - {'repr': '30', 'spoken': 'three zero', 'value': 30}% probability:
+    Flight category: VFR
+
+Visualization Links:
+  Wind: https://www.windy.com/?wind,51.4706,-0.461941,9
+  Temperature: https://www.windy.com/?temp,51.4706,-0.461941,9
+  Clouds: https://www.windy.com/?clouds,51.4706,-0.461941,9
+  Cloudtop: https://www.windy.com/?cloudtop,51.4706,-0.461941,9
+  Precipitation: https://www.windy.com/?rain,51.4706,-0.461941,9
+  Turbulence: https://www.windy.com/?turbulence,51.4706,-0.461941,9,i:850h
+  Visibility: https://www.windy.com/?visibility,51.4706,-0.461941,9
+
+==================================================
+
+2. ROUTE WEATHER
+--------------
+
+Route weather for KJFK-KLAX:
+------------------------------
+Flight route: KJFK to KLAX
+
+Departure airport: John F Kennedy International Airport (KJFK)
+  Current conditions: VFR
+  Visibility: 10 SM
+  Hazards: Forecast low ceiling: 700 feet; Forecast reduced visibility: 2 SM; Forecast low ceiling: 500 feet
+
+Destination airport: Los Angeles International Airport (KLAX)
+  Current conditions: VFR
+  Visibility: 10 SM
+
+Visualization links:
+  Wind: https://www.windy.com/?wind,37.290974,-96.09365700000001,4
+  Turbulence: https://www.windy.com/?turbulence,37.290974,-96.09365700000001,4,i:850h
+  Clouds: https://www.windy.com/?clouds,37.290974,-96.09365700000001,4
+  Cloudtop: https://www.windy.com/?cloudtop,37.290974,-96.09365700000001,4
+  Precipitation: https://www.windy.com/?rain,37.290974,-96.09365700000001,4
+  Thunder: https://www.windy.com/?thunder,37.290974,-96.09365700000001,4
+
+Route Visualization Links:
+  Wind: https://www.windy.com/?wind,37.290974,-96.09365700000001,4
+  Turbulence: https://www.windy.com/?turbulence,37.290974,-96.09365700000001,4,i:850h
+  Clouds: https://www.windy.com/?clouds,37.290974,-96.09365700000001,4
+  Cloudtop: https://www.windy.com/?cloudtop,37.290974,-96.09365700000001,4
+  Precipitation: https://www.windy.com/?rain,37.290974,-96.09365700000001,4
+  Thunder: https://www.windy.com/?thunder,37.290974,-96.09365700000001,4
+
+==================================================
+
+Route weather for EGLL-KJFK:
+------------------------------
+Flight route: EGLL to KJFK
+
+Departure airport: London Heathrow Airport (EGLL)
+  Current conditions: VFR
+  Visibility: 9999 SM
+
+Destination airport: John F Kennedy International Airport (KJFK)
+  Current conditions: VFR
+  Visibility: 10 SM
+  Hazards: Forecast low ceiling: 700 feet; Forecast reduced visibility: 2 SM; Forecast low ceiling: 500 feet
+
+Visualization links:
+  Wind: https://www.windy.com/?wind,46.0550235,-37.120629,4
+  Turbulence: https://www.windy.com/?turbulence,46.0550235,-37.120629,4,i:850h
+  Clouds: https://www.windy.com/?clouds,46.0550235,-37.120629,4
+  Cloudtop: https://www.windy.com/?cloudtop,46.0550235,-37.120629,4
+  Precipitation: https://www.windy.com/?rain,46.0550235,-37.120629,4
+  Thunder: https://www.windy.com/?thunder,46.0550235,-37.120629,4
+
+Route Visualization Links:
+  Wind: https://www.windy.com/?wind,46.0550235,-37.120629,4
+  Turbulence: https://www.windy.com/?turbulence,46.0550235,-37.120629,4,i:850h
+  Clouds: https://www.windy.com/?clouds,46.0550235,-37.120629,4
+  Cloudtop: https://www.windy.com/?cloudtop,46.0550235,-37.120629,4
+  Precipitation: https://www.windy.com/?rain,46.0550235,-37.120629,4
+  Thunder: https://www.windy.com/?thunder,46.0550235,-37.120629,4
+
+==================================================
+
+3. AIRPORT TRAFFIC
+----------------
+
+Traffic for KJFK:
+------------------------------
+Traffic summary for KJFK
+John F Kennedy International Airport
+Traffic for the past 2 hours:
+Arrivals: 0
+Departures: 0
+
+
+==================================================
+
+4. NEARBY TRAFFIC
+--------------
+
+Traffic near (40.639447, -73.779317):
+------------------------------
+Traffic within 100 km of 40.6394, -73.7793
+Total aircraft: 0
+
+Weather at location:
+  Temperature: 11.6°C
+
+Visualization links:
+  Weather: https://www.windy.com/?wind,40.639447,-73.779317,7
+  Traffic: https://globe.adsbexchange.com/?lat=40.639447&lon=-73.779317&zoom=9
+
+
+==================================================
+
+5. FLIGHT LEVEL WEATHER
+---------------------
+
+Weather at FL350 (40.639447, -73.779317):
+------------------------------
+Weather at FL350 (40.6394, -73.7793)
+Temperature: -20.0°C
+Wind: 273° at 34 knots
+Relative humidity: 51%
+
+Visualization: https://www.windy.com/?wind,40.639447,-73.779317,7,i:500
+
+Visualization: https://www.windy.com/?wind,40.639447,-73.779317,7,i:500
+
+
+==================================================
+
+
+Test completed successfully.

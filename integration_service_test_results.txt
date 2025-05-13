@@ -1,0 +1,52 @@
+INTEGRATION SERVICE TEST RESULTS
+===============================
+
+Test conducted on: 2025-05-13 19:14:16 UTC
+
+1. AIRPORT WEATHER SUMMARY
+--------------------------
+
+Error testing airport weather for KJFK: 'int' object has no attribute 'get'
+
+Error testing airport weather for KLAX: 'int' object has no attribute 'get'
+
+Error testing airport weather for EGLL: 'NoneType' object has no attribute 'get'
+
+2. AIRPORT TRAFFIC
+----------------
+
+Traffic for KJFK:
+------------------------------
+Traffic summary for KJFK
+John F Kennedy International Airport
+Arrivals (past 2 hours): 0
+Departures (past 2 hours): 0
+
+
+==================================================
+
+3. ROUTE BRIEFING
+---------------
+
+Error testing route briefing for KJFK-KLAX: 'int' object has no attribute 'get'
+
+4. NEARBY TRAFFIC
+---------------
+
+Nearby traffic at (40.639447, -73.779317):
+------------------------------
+Traffic within 50 km of 40.6394, -73.7793
+Total aircraft: 0
+
+Weather at center point:
+  Temperature: 19.3°C
+
+Visualizations:
+  Weather: https://www.windy.com/?wind,40.639447,-73.779317,8
+  Traffic: https://globe.adsbexchange.com/?lat=40.639447&lon=-73.779317&zoom=8
+
+
+==================================================
+
+
+Test completed successfully.
