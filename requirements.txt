@@ -6,3 +6,12 @@ pydantic
 requests
 aiohttp
 numpy
+
+haystack-ai
+redis
+langchain
+langchain-community
+langchain-openai
+sentence-transformers
+
+nltk
