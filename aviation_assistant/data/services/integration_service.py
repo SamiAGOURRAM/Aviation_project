@@ -1515,3 +1515,40 @@ class IntegrationService:
             parts.append(f"\nVisualization: {url}")
         
         return "\n".join(parts)
+
+    def get_airport_details(self, icao_code: str) -> Dict[str, Any]:
+        """
+        Get detailed information about a specific airport (name, coordinates, etc.).
+        
+        Args:
+            icao_code: ICAO airport code
+            
+        Returns:
+            Dictionary with airport details including name and coordinates.
+        """
+        self.logger.info(f"Fetching details for airport: {icao_code}")
+        station_data = self.avwx.get_station(icao_code) # Assuming this is the source of coords
+
+        if not isinstance(station_data, dict) or "error" in station_data:
+            self.logger.warning(f"Could not retrieve station data for {icao_code}. Error: {station_data.get('error', 'Unknown error')}")
+            return {"error": f"Could not retrieve details for airport {icao_code}."}
+
+        # Construct the specific dictionary structure that _get_visual_weather_map expects
+        details = {
+            "icao": icao_code, # Good to include the ICAO back
+            "name": station_data.get("name", "Unknown Airport Name"),
+            "city": station_data.get("city"),
+            "country": station_data.get("country"),
+            "coordinates": { # Nest coordinates as expected by the tool
+                "lat": station_data.get("latitude"),
+                "lon": station_data.get("longitude")
+            },
+            "elevation_ft": station_data.get("elevation_ft"),
+            "source": "AVWX" # Good to note the source
+        }
+
+        if details["coordinates"]["lat"] is None or details["coordinates"]["lon"] is None:
+            self.logger.warning(f"Missing coordinates for {icao_code} from AVWX station data.")
+            return {"error": f"Coordinates not found for airport {icao_code}."}
+            
+        return details
