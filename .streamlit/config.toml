@@ -1,0 +1,12 @@
+# /workspaces/Aviation_project/.streamlit/config.toml
+[server]
+runOnSave = true # Optional, set to false if you don't want auto-rerun on every save
+
+[watcher]
+# Folders and modules to not watch for changes.
+# Useful for large libraries or ones causing issues like torch.
+ignoredModules = [
+    "torch",
+    "torchvision",
+    "torchaudio"
+]

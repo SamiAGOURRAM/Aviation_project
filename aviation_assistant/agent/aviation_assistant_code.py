@@ -12,6 +12,8 @@ import hashlib
 from pathlib import Path
 import traceback
 
+from typing import Union, Dict # Add to your class imports if not there
+
 # LangChain imports
 from langchain.agents import Tool
 from langchain.agents.format_scratchpad import format_to_openai_functions
@@ -44,6 +46,7 @@ from langchain_core.runnables import RunnablePassthrough # For LCEL construction
 
 # OpenAI imports for function calling pattern
 from langchain_openai import ChatOpenAI
+from datetime import datetime, timedelta # <<< ADD timedelta HERE
 
 # Haystack 2.x imports
 from haystack import Pipeline, Document as HaystackDocument
@@ -395,7 +398,8 @@ class EnhancedAviationAssistant:
             Question: {{ query }}
             Answer:
             """
-            self.prompt_builder = PromptBuilder(template=rag_prompt_template)
+            self.prompt_builder = PromptBuilder(template=rag_prompt_template,required_variables=["query"]
+)
 
             rag_llm_model_name_on_groq = "meta-llama/llama-4-scout-17b-16e-instruct"
             self.rag_llm_generator = OpenAIChatGenerator(
@@ -453,8 +457,8 @@ class EnhancedAviationAssistant:
                 ),
                 Tool(
                     name="get_visual_weather_map",
-                    func=self._get_visual_weather_map,
-                    description="Generate a URL for a visual weather map (e.g., radar, satellite) for a specified airport. Input should be ICAO code and map type separated by comma (e.g., 'KJFK,radar' or 'EGLL,satellite')."
+                    func=self._get_visual_weather_map_flexible_input,
+                    description="Generate a URL for a visual weather map (e.g., radar, satellite) for a specified airport. Input can be 'ICAO,map_type' OR a dictionary with 'icao_code' and 'map_type'."
                 )
             ]
             
@@ -470,7 +474,6 @@ Available Tools:
 - get_flight_level_weather: Weather at a specific altitude/location. (Input: lat,lon,FLXXX)
 - get_airport_traffic: Airport arrival/departure info. (Input: ICAO,optional_hours)
 - query_aviation_knowledge_base: For questions about aviation regulations, aircraft systems, aerodynamics, flight procedures (normal/emergency), airport operations, weather theory from official manuals (like PHAK). (Input: specific question)
-- get_safety_recommendations_for_conditions: For advice, procedures, or safety considerations regarding specific hazardous weather or flight situations, based on documented best practices. (Input: description of condition/situation)
 - get_visual_weather_map: Generates links to weather maps. (Input: ICAO,map_type)
 
 Operational Guidelines:
@@ -478,7 +481,7 @@ Operational Guidelines:
 2.  **Select Tool:** If a tool is directly applicable, use it. Formulate precise input for the tool.
 3.  **Evaluate Tool Output:**
     a.  If the tool provides a comprehensive answer, use that to respond directly to the user.
-    b.  **Handling RAG "Not Found":** If `query_aviation_knowledge_base` or `get_safety_recommendations_for_conditions` returns a message indicating that the information was *not found in its documents* (e.g., "No relevant information found..." or "The information on X is not found..."), **accept this result.** Present this "not found" information to the user and **do not immediately try another tool or re-query the same RAG tool with slight variations for the same original user intent.** Only re-query if the user provides significant new clarifying information for a subsequent query.
+    b.  **Handling RAG "Not Found":** If `query_aviation_knowledge_base` returns a message indicating that the information was *not found in its documents* (e.g., "No relevant information found..." or "The information on X is not found..."), **accept this result.** Present this "not found" information to the user and **do not immediately try another tool or re-query the same RAG tool with slight variations for the same original user intent.** Only re-query if the user provides significant new clarifying information for a subsequent query.
     c.  If any tool returns an error (e.g., API issue, connection problem), clearly state the problem to the user.
 4.  **Single Tool Attempt (for RAG):** Reinforce the point above: for RAG tools, one well-formed attempt based on the user's query is usually sufficient. If it doesn't find it, it means the documents likely don't have it.
 5.  **Synthesis:** Your final answer should synthesize the most relevant tool output.
@@ -514,66 +517,177 @@ Operational Guidelines:
                 memory=self.memory,
                 verbose=True,
                 handle_parsing_errors=True, # Good for debugging
-                max_iterations=6 # Slightly increased if complex queries need more steps
+                max_iterations=5, # Slightly increased if complex queries need more steps
+                return_intermediate_steps=True
             )
             self.logger.info("Tools and OpenAI tools-based agent initialized successfully.")
         except Exception as e:
             self.logger.error(f"Error initializing tools and agent: {str(e)}")
             traceback.print_exc()
             raise RuntimeError(f"Failed to initialize tools and agent: {str(e)}")
+        
+    def _get_visual_weather_map_flexible_input(self, tool_input: Union[str, Dict]) -> str:
+        self.logger.info(f"Tool call (flexible input): _get_visual_weather_map for '{tool_input}'")
+        icao_code = None
+        map_type = "radar" # Default
+
+        if isinstance(tool_input, str):
+            try:
+                parts = tool_input.split(",")
+                if len(parts) == 2 and parts[0].strip() and parts[1].strip():
+                    icao_code = parts[0].strip().upper()
+                    map_type = parts[1].strip().lower()
+                elif len(parts) == 1 and parts[0].strip(): # If only ICAO is given
+                    icao_code = parts[0].strip().upper()
+                    # map_type remains default 'radar'
+                else:
+                    return "Error: Invalid string input format. Expected 'ICAO,map_type' or just 'ICAO'."
+            except Exception:
+                return "Error: Could not parse string input for visual weather map."
+        elif isinstance(tool_input, dict):
+            icao_code = tool_input.get("icao_code", tool_input.get("icao")) # Allow for common variations
+            map_type_from_dict = tool_input.get("map_type", tool_input.get("type"))
+            if map_type_from_dict: # Only override default if provided
+                map_type = map_type_from_dict.lower()
+            if not icao_code:
+                return "Error: Dictionary input for visual weather map must contain 'icao_code'."
+            icao_code = icao_code.strip().upper()
+        else:
+            return f"Error: Unexpected input type for visual weather map: {type(tool_input)}. Expected string or dictionary."
+
+        if not icao_code: # Should be caught above, but as a safeguard
+            return "Error: ICAO code is missing for visual weather map."
+
+        # --- Now the rest of the logic is the same as _get_visual_weather_map from Path 1 ---
+        # Validate map_type
+        valid_windy_overlays = ["wind", "temp", "clouds", "cloudtop", "rain", "radar",
+                                "satellite", "pressure", "snow", "thunder", "visibility"]
+        windy_param = ""
+        if map_type not in valid_windy_overlays:
+            if map_type == "radar":
+                windy_param = "radar" # or "rain"
+            else:
+                return f"Error: Invalid or unsupported map type '{map_type}'. Supported types include: {', '.join(valid_windy_overlays)}."
+        else:
+            windy_param = map_type
+
+        # Get airport details
+        airport_details = self.safe_api_call(
+            self.integration_service.get_airport_details,
+            icao_code,
+            default_value={"error": f"Could not retrieve airport details for {icao_code} to generate map."},
+            tool_name="AirportDetailServiceForMap"
+        )
+
+        if "error" in airport_details:
+            return airport_details["error"]
+        if not airport_details.get("coordinates") or \
+        airport_details["coordinates"].get("lat") is None or \
+        airport_details["coordinates"].get("lon") is None:
+            return f"Error: Missing coordinates in details for {icao_code}."
+
+        lat = airport_details["coordinates"]["lat"]
+        lon = airport_details["coordinates"]["lon"]
+        airport_name = airport_details.get("name", "Unknown Airport")
+        zoom = 8
+
+        map_url_str = f"https://www.windy.com/?{windy_param},{lat},{lon},{zoom}"
+        self.logger.info(f"Generated Windy URL: {map_url_str}")
+
+        return (f"Visual Weather Map for {icao_code} ({airport_name}):\n"
+                f"Type: {map_type.capitalize()}\n"
+                f"URL: {map_url_str}\n"
+                f"Note: This map provides a {map_type} visualization around {icao_code}.")
 
     def process_query(self, query: str, streaming: bool = False) -> Dict[str, Any]:
-        # ... (your existing process_query method - no changes needed here based on the request)
         start_time = time.time()
-        query_hash = self._normalize_query(query)
-        response_id = f"response:{int(start_time)}_{query_hash[:8]}"
-        
-        cached_response = self._check_cache(query)
-        if cached_response:
+        query_hash = self._normalize_query(query) # For primary cache key
+        response_id = f"response:{int(start_time)}_{hashlib.md5(query.encode()).hexdigest()[:8]}" # Unique ID
+
+        # _check_cache now returns the full payload dictionary or None
+        cached_response_payload = self._check_cache(query)
+        if cached_response_payload:
             self.logger.info(f"Cache hit for query: {query}")
+            # Ensure the cached payload has all necessary fields for the Streamlit app
             return {
-                "message": cached_response,
+                "message": cached_response_payload.get("response_content"),
                 "source": "cache",
-                "response_id": response_id,
-                "processing_time": 0 # Or load processing time if stored
+                "response_id": cached_response_payload.get("response_id", response_id),
+                "processing_time": 0, # Or calculate if you store start/end times in cache
+                "intermediate_steps": cached_response_payload.get("intermediate_steps", []), # Get from cache
+                "error": None # No error if from cache
             }
-        
+
         try:
-            self.logger.info(f"Invoking agent_chain with input: '{query}'")
-            self.logger.debug(f"Current chat_history for agent: {self.memory.chat_memory.messages}")
-            
-            # Ensure chat_history is correctly passed if needed by your specific RunnablePassthrough or prompt
-            # The AgentExecutor handles memory automatically if configured.
+            self.logger.info(f"Invoking agent_chain with input: '{query}' for response_id: {response_id}")
+
+            # Ensure your AgentExecutor is set up with return_intermediate_steps=True
             response_from_agent = self.agent_chain.invoke({
                 "input": query
-                # "chat_history" is implicitly handled by memory in AgentExecutor
             })
-            
-            output_message = response_from_agent.get("output", str(response_from_agent)) # Handle if output key missing
-            
+
+            output_message = response_from_agent.get("output", str(response_from_agent))
+            # intermediate_steps_raw will be a list of (AgentAction, observation) tuples
+            intermediate_steps_raw = response_from_agent.get("intermediate_steps", [])
+
+            # --- Temporary storage for potential fine-tuning data ---
+            if intermediate_steps_raw: # Only store if there were tool calls
+                try:
+                    # This serialization is for the fine-tuning data format
+                    serialized_steps_for_finetuning = []
+                    for step in intermediate_steps_raw:
+                        action, observation = step
+                        serialized_steps_for_finetuning.append({
+                            "tool": action.tool,
+                            "tool_input": action.tool_input,
+                            "log": action.log,
+                            # "observation": str(observation) # Optionally store observation for fine-tuning too
+                        })
+
+                    temp_invocation_data = {
+                        "original_query": query,
+                        "intermediate_steps_for_finetuning": serialized_steps_for_finetuning,
+                        "final_agent_output": output_message,
+                        "response_id": response_id
+                    }
+                    temp_key = f"temp_invocation_data:{response_id}"
+                    self.redis_client.setex(
+                        temp_key,
+                        timedelta(hours=24), # Store for 24 hours
+                        json.dumps(temp_invocation_data)
+                    )
+                    self.logger.info(f"Temporarily stored invocation data for fine-tuning: {response_id}")
+                except Exception as e_temp_store:
+                    self.logger.error(f"Error temporarily storing invocation data for {response_id}: {e_temp_store}")
+            # --- End temporary storage ---
+
             processing_time = time.time() - start_time
-            self._cache_response(query, output_message, response_id) # Cache successful responses
-            
+
+            # Pass intermediate_steps_raw to _cache_response
+            self._cache_response(query, output_message, response_id, query_hash, intermediate_steps_raw)
+
             return {
                 "message": output_message,
                 "source": "agent",
                 "response_id": response_id,
-                "processing_time": processing_time
+                "processing_time": processing_time,
+                "intermediate_steps": intermediate_steps_raw, # Pass the raw steps to Streamlit
+                "error": None
             }
         except Exception as e:
             self.logger.error(f"Error processing query with agent: {str(e)}", exc_info=True)
             fallback_response = self._create_fallback_response(e)
             processing_time = time.time() - start_time
-            # Do not cache error responses in the primary query cache
+            # It's good practice to also cache error responses, but with a very short TTL
+            # For now, just returning the error structure
             return {
                 "message": fallback_response,
-                "error": str(e), # Include error string for debugging/logging
+                "error": str(e),
                 "source": "error",
                 "response_id": response_id,
-                "processing_time": processing_time
+                "processing_time": processing_time,
+                "intermediate_steps": [] # No intermediate steps if an error occurred before/during agent invocation
             }
-
-
     def _create_fallback_response(self, error: Exception) -> str:
         # ... (your existing _create_fallback_response method)
         if isinstance(error, (ConnectionError, Timeout, requests.exceptions.RequestException)):
@@ -599,98 +713,144 @@ Operational Guidelines:
                 "The technical team has been notified. Please try again later, or rephrase your question."
             )
 
-    def provide_feedback(self, response_id: str, is_positive: bool) -> None:
-        # ... (your existing provide_feedback method)
+    def provide_feedback(self, response_id: str, is_positive: bool, user_comment: Optional[str] = None) -> None:
         try:
-            parts = response_id.split("_")
-            if len(parts) < 2:
-                self.logger.warning(f"Invalid response_id format for feedback: {response_id}")
-                return
+            # --- Existing feedback logic for adjusting cache TTL ---
+            parts = response_id.split("_") # Assuming response_id format "response:timestamp_queryhashpart"
+            # A more robust way to get query_hash might be needed if response_id format changes
+            # For now, let's assume it's linked via the meta:response key
+            response_meta_key = f"meta:response:{response_id}"
+            query_hash_from_meta = self.redis_client.hget(response_meta_key, "query_hash")
 
-            query_hash_part = parts[1] # Assuming the hash is the second part
-            
-            feedback_key = f"feedback:entry:{response_id}" # More specific key for feedback entry
-            self.redis_client.hset(feedback_key, mapping={
+            if query_hash_from_meta:
+                query_hash_from_meta = query_hash_from_meta.decode('utf-8')
+                cache_key_for_query = f"cache:query:{query_hash_from_meta}"
+                if self.redis_client.exists(cache_key_for_query):
+                    if is_positive:
+                        new_ttl = 86400 * 7  # 7 days
+                        self.redis_client.expire(cache_key_for_query, new_ttl)
+                        self.logger.info(f"Extended TTL for {cache_key_for_query} to {new_ttl}s due to positive feedback on {response_id}.")
+                    else:
+                        new_ttl = 300  # 5 minutes
+                        self.redis_client.expire(cache_key_for_query, new_ttl)
+                        self.logger.info(f"Reduced TTL for {cache_key_for_query} to {new_ttl}s due to negative feedback on {response_id}.")
+            else:
+                self.logger.warning(f"Could not find query_hash in meta for {response_id} to adjust cache TTL.")
+
+            # --- Store general feedback entry ---
+            feedback_key = f"feedback:entry:{response_id}"
+            feedback_payload = {
                 "is_positive": "1" if is_positive else "0",
                 "timestamp": time.time()
-            })
-            # Optional: Set an expiry for the feedback entry itself
-            self.redis_client.expire(feedback_key, 86400 * 30) # Keep feedback for 30 days
+            }
+            if user_comment:
+                feedback_payload["comment"] = user_comment
+            self.redis_client.hset(feedback_key, mapping=feedback_payload)
+            self.redis_client.expire(feedback_key, 86400 * 30) # Keep feedback entry for 30 days
+            # --- End existing feedback logic ---
 
-            # Adjust TTL of the cached query response based on feedback
-            # The cache key for the query response itself
-            cache_key_for_query = f"cache:query:{query_hash_part}" 
-            
-            if self.redis_client.exists(cache_key_for_query):
-                if is_positive:
-                    # Extend TTL for positive feedback - e.g., keep for 7 days
-                    new_ttl = 86400 * 7
-                    self.redis_client.expire(cache_key_for_query, new_ttl)
-                    self.logger.info(f"Extended TTL for {cache_key_for_query} to {new_ttl}s due to positive feedback on {response_id}.")
+
+            # --- NEW: Store data for fine-tuning on positive feedback ---
+            if is_positive:
+                temp_key = f"temp_invocation_data:{response_id}"
+                temp_data_json = self.redis_client.get(temp_key)
+
+                if temp_data_json:
+                    try:
+                        invocation_data = json.loads(temp_data_json.decode('utf-8'))
+                        
+                        # Prepare the data for fine-tuning storage
+                        # The exact format will depend on your future fine-tuning needs.
+                        # A common format is a list of "turns" or prompt/completion pairs.
+                        # For function calling, you want the prompt and the sequence of tool calls.
+                        
+                        fine_tuning_sample = {
+                            "id": response_id, # Link back to the interaction
+                            "user_query": invocation_data.get("original_query"),
+                            "timestamp": time.time(),
+                            "agent_tool_calls": invocation_data.get("intermediate_steps_for_finetuning", []),
+                            "final_agent_answer": invocation_data.get("final_agent_output") # For context
+                        }
+                        
+                        # Each element in the list will be a JSON string of a fine_tuning_sample
+                        redis_list_key = "finetuning_samples:function_calling"
+                        self.redis_client.rpush(redis_list_key, json.dumps(fine_tuning_sample))
+                        self.logger.info(f"Stored positive interaction ({response_id}) for fine-tuning.")
+
+                        # Clean up the temporary data
+                        self.redis_client.delete(temp_key)
+                        self.logger.info(f"Deleted temporary invocation data for {response_id}.")
+
+                    except json.JSONDecodeError:
+                        self.logger.error(f"Could not decode temporary invocation data for {response_id}.")
+                    except Exception as e_finetune:
+                        self.logger.error(f"Error processing or storing fine-tuning data for {response_id}: {e_finetune}")
                 else:
-                    # Significantly reduce TTL or delete for negative feedback - e.g., keep for 5 mins or delete
-                    # Deleting might be too aggressive if it was a transient issue, reducing TTL is safer.
-                    new_ttl = 300 # 5 minutes
-                    self.redis_client.expire(cache_key_for_query, new_ttl)
-                    self.logger.info(f"Reduced TTL for {cache_key_for_query} to {new_ttl}s due to negative feedback on {response_id}.")
-            else:
-                self.logger.info(f"No cached query response found at {cache_key_for_query} to adjust TTL for feedback on {response_id}.")
+                    self.logger.warning(f"No temporary invocation data found for {response_id} to store for fine-tuning. Feedback might have been too late.")
+            # --- End new fine-tuning data storage ---
 
         except Exception as e:
-            self.logger.error(f"Error storing feedback for {response_id}: {str(e)}", exc_info=True)
+            self.logger.error(f"Error in provide_feedback for {response_id}: {str(e)}", exc_info=True)
 
 
-    def _check_cache(self, query: str) -> Optional[str]:
-        # ... (your existing _check_cache method)
+    def _check_cache(self, query: str) -> Optional[Dict[str, Any]]:
         try:
             query_key_hash = self._normalize_query(query)
             cache_key = f"cache:query:{query_key_hash}"
-            
+
             cached_data_json = self.redis_client.get(cache_key)
             if cached_data_json:
                 cached_data = json.loads(cached_data_json.decode('utf-8'))
-                # Optional: Check for recent negative feedback on this specific query_hash
-                # This requires storing feedback linked to query_hash, not just response_id
-                # For simplicity, current feedback logic adjusts TTL of the response directly.
-                # If you want more aggressive cache invalidation based on any negative feedback for this query:
-                # feedback_score = self.redis_client.get(f"feedback:score:{query_key_hash}")
-                # if feedback_score and int(feedback_score) < 0:
-                #    self.logger.info(f"Cache hit for {query_key_hash}, but ignoring due to negative feedback score.")
-                #    return None
-                
-                self.logger.info(f"Cache hit for query (hash: {query_key_hash}).")
-                return cached_data.get("response_content") # Assuming you store content this way
+                # Optional: Add logic here if you want to check feedback score for aggressive invalidation
+                self.logger.info(f"Cache hit for query (hash: {query_key_hash}). Returning full payload.")
+                return cached_data # Return the entire cached dictionary
             return None
         except Exception as e:
             self.logger.error(f"Error checking cache for query '{query[:50]}...': {str(e)}", exc_info=True)
-            return None # Fail safe, retrieve fresh data
-
-    def _cache_response(self, query: str, response_content: str, response_id: str) -> None:
-        # ... (your existing _cache_response method)
+            return None
+    def _cache_response(self, query: str, response_content: str, response_id: str, query_key_hash: str, intermediate_steps: Optional[List] = None) -> None: # MODIFIED: Accepts intermediate_steps
         try:
-            query_key_hash = self._normalize_query(query)
             cache_key = f"cache:query:{query_key_hash}"
-            ttl = self._determine_cache_ttl(query) # Your existing TTL logic
+            ttl = self._determine_cache_ttl(query)
 
-            # Store response content and some metadata together
-            cache_payload = json.dumps({
+            cache_payload_dict = {
                 "response_content": response_content,
-                "response_id": response_id, # Link back to the specific response ID
-                "original_query": query,    # For easier debugging from cache
+                "response_id": response_id,
+                "original_query": query,
                 "timestamp": time.time(),
                 "ttl_at_caching": ttl
-            })
-            
+            }
+
+            if intermediate_steps:
+                # Serialize intermediate_steps for JSON.
+                # AgentAction contains tool, tool_input, log. Observation is separate.
+                # Langchain's AgentAction and tuple structure (AgentAction, observation) is standard.
+                serializable_steps = []
+                for step in intermediate_steps: # step is a tuple (AgentAction, observation_str)
+                    action, observation = step
+                    serializable_steps.append({
+                        "tool": action.tool,
+                        "tool_input": action.tool_input,
+                        "log": action.log,
+                        "observation": str(observation) # Ensure observation is stringified
+                    })
+                cache_payload_dict["intermediate_steps"] = serializable_steps
+            else:
+                cache_payload_dict["intermediate_steps"] = []
+
+
+            cache_payload = json.dumps(cache_payload_dict)
+
             self.redis_client.setex(cache_key, ttl, cache_payload)
-            
-            # Storing metadata related to the response_id is still useful for feedback linking etc.
+
+            # Meta for the response_id itself is still useful
             self.redis_client.hset(f"meta:response:{response_id}", mapping={
-                "query_hash": query_key_hash, # Link response_id to the query_hash
+                "query_hash": query_key_hash,
                 "original_query": query,
                 "timestamp": time.time(),
                 "initial_ttl": ttl
             })
-            self.logger.info(f"Cached response for query (hash: {query_key_hash}) with TTL {ttl}s.")
+            self.logger.info(f"Cached response for query (hash: {query_key_hash}) with response_id {response_id}, intermediate steps, and TTL {ttl}s.")
         except Exception as e:
             self.logger.error(f"Error caching response for query '{query[:50]}...': {str(e)}", exc_info=True)
 
@@ -1321,6 +1481,9 @@ if __name__ == '__main__':
 
         for i, test_case in enumerate(test_queries):
             print(f"\n--- Test Case {i+1}: {test_case['type']} ---")
+            if i > 0: # Clear memory for subsequent test cases to ensure independence
+                assistant.memory.clear()
+                print("Cleared agent memory for new test case.")
             query = test_case["query"]
             print(f"Q: {query}")
             response = assistant.process_query(query) # streaming=False for simpler console logging

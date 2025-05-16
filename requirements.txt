@@ -19,3 +19,4 @@ pypdf
 
 qdrant-haystack 
 qdrant-client
+streamlit
