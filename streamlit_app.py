@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import os
 import logging # For assistant's internal logging
+from typing import Tuple, List # For type hinting if using the method above
+
 
 # Add the project root to sys.path to allow imports from aviation_assistant
 import sys
@@ -97,7 +99,7 @@ def get_assistant():
         st.exception(e)
         st.stop()
 
-def display_chat_message(message_obj, assistant_ref): # assistant_ref is the passed assistant instance
+def display_chat_message(message_obj, assistant_ref, message_idx: int): # Added message_idx
     """Displays a single chat message with sender, content, and feedback options."""
     role = message_obj["role"]
     content = message_obj["content"]
@@ -108,7 +110,7 @@ def display_chat_message(message_obj, assistant_ref): # assistant_ref is the pas
 
         if role == "assistant" and "metadata" in message_obj:
             metadata = message_obj["metadata"]
-            response_id = metadata.get("response_id")
+            response_id = metadata.get("response_id", f"unknown_resp_id_msg{message_idx}") # Fallback if response_id is missing
             source = metadata.get("source", "N/A")
             processing_time = metadata.get("processing_time", 0)
             api_error = metadata.get("error") # Error from the API call itself
@@ -118,8 +120,8 @@ def display_chat_message(message_obj, assistant_ref): # assistant_ref is the pas
             caption_parts = [f"Source: {source}"]
             if processing_time > 0:
                 caption_parts.append(f"Time: {processing_time:.2f}s")
-            if response_id:
-                caption_parts.append(f"ID: {response_id}")
+            # Use the potentially fallbacked response_id for display if original was None
+            caption_parts.append(f"ID: {response_id}")
             st.caption(" | ".join(caption_parts))
 
             if api_error and source == "error":
@@ -140,14 +142,12 @@ def display_chat_message(message_obj, assistant_ref): # assistant_ref is the pas
 
                             # Check the type of step_data to handle both live and cached formats
                             if isinstance(step_data, tuple) and len(step_data) == 2:
-                                # Live agent format: (AgentAction_instance, observation_string_or_object)
                                 action_obj, obs_obj = step_data
                                 action_tool = getattr(action_obj, 'tool', action_tool)
                                 action_tool_input = getattr(action_obj, 'tool_input', action_tool_input)
                                 action_log = getattr(action_obj, 'log', action_log)
-                                observation_content = str(obs_obj) # Convert observation to string
+                                observation_content = str(obs_obj)
                             elif isinstance(step_data, dict):
-                                # Cached format: dictionary
                                 action_tool = step_data.get('tool', action_tool)
                                 action_tool_input = step_data.get('tool_input', action_tool_input)
                                 action_log = step_data.get('log', action_log)
@@ -155,7 +155,7 @@ def display_chat_message(message_obj, assistant_ref): # assistant_ref is the pas
                             else:
                                 st.error(f"Error displaying step {i+1}: Unknown step data format: {type(step_data)}")
                                 st.json({"raw_step_data": str(step_data)})
-                                continue # Skip to next step
+                                continue
 
                             st.markdown(f"**Step {i+1}: Tool Call**")
                             
@@ -194,39 +194,46 @@ def display_chat_message(message_obj, assistant_ref): # assistant_ref is the pas
                         st.markdown("---")
             
             # Feedback section
+            # Ensure response_id is not None before creating keys for feedback
             if response_id and source != "error":
-                feedback_key_suffix = response_id.replace(":", "_").replace("-","_").replace(".","_")
-                feedback_given_key = f"feedback_given_{feedback_key_suffix}"
-                comment_key = f"comment_text_{feedback_key_suffix}"
+                # MODIFICATION: Incorporate message_idx into the key for guaranteed uniqueness per render cycle
+                # Clean up the response_id for use in a key, then add message_idx
+                clean_response_id_part = response_id.replace(":", "_").replace("-","_").replace(".","_")
+                feedback_base_key = f"feedback_controls_{clean_response_id_part}_msg{message_idx}"
+                
+                # These keys are now unique for each message's feedback controls in the current render
+                feedback_given_key = f"feedback_given_status_{feedback_base_key}"
+                comment_key = f"comment_text_for_{feedback_base_key}"
+                positive_button_key = f"positive_btn_{feedback_base_key}"
+                negative_button_key = f"negative_btn_{feedback_base_key}"
+
 
                 if not st.session_state.get(feedback_given_key, False):
                     current_comment_value = st.session_state.get(comment_key, "")
                     
                     cols_feedback = st.columns([1, 1, 3, 5])
                     with cols_feedback[0]:
-                        if st.button("👍", key=f"positive_{feedback_key_suffix}", help="Good response!"):
-                            # Read the current comment from session state when submitting
+                        if st.button("👍", key=positive_button_key, help="Good response!"):
                             comment_to_submit = st.session_state.get(comment_key, "")
+                            # Pass the original response_id to the backend, not the modified widget key
                             assistant_ref.provide_feedback(response_id, True, comment_to_submit)
                             st.session_state[feedback_given_key] = True
                             st.toast("Thanks for your positive feedback! 😊", icon="👍")
                             st.rerun()
                     with cols_feedback[1]:
-                        if st.button("👎", key=f"negative_{feedback_key_suffix}", help="Needs improvement."):
-                            # Read the current comment from session state when submitting
+                        if st.button("👎", key=negative_button_key, help="Needs improvement."):
                             comment_to_submit = st.session_state.get(comment_key, "")
+                            # Pass the original response_id to the backend
                             assistant_ref.provide_feedback(response_id, False, comment_to_submit)
                             st.session_state[feedback_given_key] = True
                             st.toast("Thanks! We'll use this to improve. 🛠️", icon="👎")
                             st.rerun()
                     
                     with cols_feedback[3]:
-                         # The text_area widget itself will manage st.session_state[comment_key]
-                         # We provide 'value' for initial display and 'key' for state binding.
                          st.text_area(
                              "Optional comment:",
-                             value=current_comment_value, # Sets initial text if reran before submit
-                             key=comment_key,             # Links this widget to st.session_state[comment_key]
+                             value=current_comment_value,
+                             key=comment_key, # This key now includes message_idx via feedback_base_key
                              height=75,
                              help="Your comment will be submitted with your feedback.",
                              disabled=st.session_state.get(feedback_given_key, False)
@@ -246,7 +253,6 @@ if "messages" not in st.session_state:
 
 # --- Sidebar ---
 with st.sidebar:
-    st.image("https://raw.githubusercontent.com/samiag07/Aviation_project/main/assets/plane_logo_transp.png", width=120, use_container_width=True)
     st.title("SkyPilot AI")
     st.markdown("Your AI Co-Pilot for Pre-Flight Briefings & Aviation Knowledge.")
 
@@ -260,6 +266,31 @@ with st.sidebar:
             if key.startswith("feedback_given_") or key.startswith("comment_text_"):
                 del st.session_state[key]
         st.rerun()
+        st.markdown("---") # Separator
+
+    # New Clear Cache Button
+    if st.button("🗑️ Clear Assistant Cache", use_container_width=True, type="secondary",
+                  help="Clears all cached query responses from Redis. Useful for testing or forcing fresh data."):
+        if 'assistant_instance' in locals() and hasattr(assistant_instance, 'clear_all_query_caches'):
+            with st.spinner("Clearing cache..."):
+                try:
+                    num_deleted, deleted_sample = assistant_instance.clear_all_query_caches()
+                    if num_deleted > 0:
+                        st.success(f"Successfully cleared {num_deleted} cached items!")
+                        if deleted_sample:
+                            with st.expander("See sample of cleared keys"):
+                                for key_name in deleted_sample:
+                                    st.text(key_name)
+                    else:
+                        st.info("No cached items found to clear, or an error occurred (check logs).")
+                except Exception as e:
+                    st.error(f"Error clearing cache: {e}")
+            st.rerun() # Rerun to reflect any changes if needed
+        else:
+            st.warning("Assistant instance not available or doesn't support cache clearing method.")
+
+
+    st.markdown("---") # Separator before example prompts or other content
 
     st.markdown("---")
     st.subheader("💡 Example Prompts:")
@@ -268,7 +299,6 @@ with st.sidebar:
         "Route weather KLAX to KORD",
         "Radar map for EDDF",
         "Hazardous attitudes in ADM?",
-        "What are VFR cruising altitudes?",
         "Primary flight controls?"
     ]
     for prompt_text in example_prompts:
@@ -316,8 +346,8 @@ st.header("✈️ Enhanced Aviation Assistant", anchor=False)
 st.markdown("Ask me anything about aviation weather, traffic, regulations, or procedures!")
 
 # Display chat messages from history
-for msg in st.session_state.messages:
-    display_chat_message(msg, assistant_instance)
+for idx, msg  in enumerate(st.session_state.messages):
+    display_chat_message(msg, assistant_instance, idx)
 
 # Accept user input
 if user_query := st.chat_input("How can I assist your flight planning today?"):
@@ -348,14 +378,6 @@ if user_query := st.chat_input("How can I assist your flight planning today?"):
                     "content": assistant_response_content,
                     "metadata": metadata_for_display
                 })
-                # No st.rerun() here immediately after adding assistant message.
-                # It will cause issues with feedback buttons if rerun before they are defined for the new message.
-                # display_chat_message will be called on the next natural rerun (e.g., feedback button click).
-                # For immediate display of feedback buttons, we'd need to structure differently or accept a slight delay.
-                # The current flow is: user types, user msg shows, spinner, assistant msg shows, then on next interaction (new query or feedback) things update.
-                # To make feedback appear instantly, we might need to call rerun after adding the assistant message to history,
-                # but this can sometimes cause chained reruns. Let's test current behavior first.
-                # Adding it back to ensure feedback shows up immediately.
                 st.rerun()
 
 

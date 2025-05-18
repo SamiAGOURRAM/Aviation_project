@@ -180,7 +180,7 @@ class EnhancedAviationAssistant:
                 model=agent_llm_model_name,
                 openai_api_key=self.config.get("groq_api_key"),
                 openai_api_base="https://api.groq.com/openai/v1",
-                temperature=0.1, # Slightly lower for more deterministic agent behavior
+                temperature=0.3, # Slightly lower for more deterministic agent behavior
                 streaming=True,
                 callbacks=[StreamingStdOutCallbackHandler()]
             )
@@ -427,6 +427,43 @@ class EnhancedAviationAssistant:
             self.logger.error(f"Error initializing RAG pipeline with QdrantDocumentStore: {str(e)}")
             traceback.print_exc()
             raise RuntimeError(f"Failed to initialize RAG pipeline: {str(e)}")
+        
+    def clear_all_query_caches(self) -> Tuple[int, List[str]]:
+        """
+        Clears all query caches stored in Redis by this assistant.
+        (Keys matching "cache:query:*")
+        Returns a tuple of (number_of_keys_deleted, list_of_deleted_keys_sampled).
+        """
+        if not self.redis_client:
+            self.logger.warning("Redis client not available. Cannot clear cache.")
+            return 0, []
+        
+        try:
+            cache_keys_bytes = self.redis_client.keys("cache:query:*")
+            deleted_keys_sample = []
+            num_deleted = 0
+
+            if cache_keys_bytes:
+                # For large number of keys, consider using redis_client.scan_iter
+                # For simplicity with potentially fewer keys during dev, pipeline delete is fine.
+                pipe = self.redis_client.pipeline()
+                for key_bytes in cache_keys_bytes:
+                    pipe.delete(key_bytes)
+                    if len(deleted_keys_sample) < 10: # Sample a few keys for logging/display
+                        deleted_keys_sample.append(key_bytes.decode('utf-8', errors='ignore'))
+                
+                results = pipe.execute()
+                num_deleted = sum(results) # sum of 1s for deleted, 0s for not found
+                
+                self.logger.info(f"Cleared {num_deleted} query cache keys from Redis. Sample: {deleted_keys_sample}")
+            else:
+                self.logger.info("No query cache keys found matching 'cache:query:*' to clear.")
+            
+            return num_deleted, deleted_keys_sample
+        except Exception as e:
+            self.logger.error(f"Error clearing query caches: {e}", exc_info=True)
+            return 0, [f"Error: {str(e)}"]
+    
     def _init_tools_and_agent(self):
         try:
             self.tools = [
@@ -458,7 +495,7 @@ class EnhancedAviationAssistant:
                 Tool(
                     name="get_visual_weather_map",
                     func=self._get_visual_weather_map_flexible_input,
-                    description="Generate a URL for a visual weather map (e.g., radar, satellite) for a specified airport. Input can be 'ICAO,map_type' OR a dictionary with 'icao_code' and 'map_type'."
+                    description="Generate a URL for a visual weather map (e.g., radar, satellite) for a specified airport. Input can be 'ICAO,map_type'."
                 )
             ]
             
@@ -467,14 +504,6 @@ class EnhancedAviationAssistant:
             
             # Enhanced system message for the agent
             system_message_content = """You are an advanced Aviation Pre-Flight Briefing & Planning AI Agent. Your primary role is to assist pilots by accurately answering questions and providing information using your specialized tools. Base your responses *primarily* on the information retrieved by these tools.
-
-Available Tools:
-- get_airport_weather: Current/forecast weather at an airport. (Input: ICAO code)
-- get_route_weather: Weather along a flight route. (Input: ICAO1,ICAO2)
-- get_flight_level_weather: Weather at a specific altitude/location. (Input: lat,lon,FLXXX)
-- get_airport_traffic: Airport arrival/departure info. (Input: ICAO,optional_hours)
-- query_aviation_knowledge_base: For questions about aviation regulations, aircraft systems, aerodynamics, flight procedures (normal/emergency), airport operations, weather theory from official manuals (like PHAK). (Input: specific question)
-- get_visual_weather_map: Generates links to weather maps. (Input: ICAO,map_type)
 
 Operational Guidelines:
 1.  **Analyze Query:** Carefully understand the user's request, considering conversation history for context.

@@ -1,0 +1,252 @@
+[
+  {
+    "query_id": "q001",
+    "query_text": "What's the current METAR for KJFK?",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q002",
+    "query_text": "Tell me about the weather at London Heathrow.",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q003",
+    "query_text": "I need the TAF for LFPG.",
+    "selected_tools": ["get_airport_weather", "get_visual_weather_map"]
+  },
+  {
+    "query_id": "q004",
+    "query_text": "Weather outlook for a flight from KLAX to KORD?",
+    "selected_tools": ["get_route_weather"]
+  },
+  {
+    "query_id": "q005",
+    "query_text": "What are conditions like between CYYZ and CYUL?",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q006",
+    "query_text": "Give me winds aloft at 39.0, -95.0, FL320.",
+    "selected_tools": ["get_flight_level_weather"]
+  },
+  {
+    "query_id": "q007",
+    "query_text": "Temperature and wind at 45.5, -73.5 at 18000 feet?",
+    "selected_tools": ["get_flight_level_weather"]
+  },
+  {
+    "query_id": "q008",
+    "query_text": "Show arrivals and departures for KORD over the last 3 hours.",
+    "selected_tools": ["get_airport_traffic"]
+  },
+  {
+    "query_id": "q009",
+    "query_text": "What's the traffic situation at EGLL right now?",
+    "selected_tools": ["get_airport_traffic", "get_airport_weather"]
+  },
+  {
+    "query_id": "q010",
+    "query_text": "Explain the different types of hypoxia as per PHAK.",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q011",
+    "query_text": "What are the VFR cruising altitude regulations?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q012",
+    "query_text": "How does an airfoil generate lift?",
+    "selected_tools": []
+  },
+  {
+    "query_id": "q013",
+    "query_text": "Show me a satellite image for the area around KDEN.",
+    "selected_tools": ["get_visual_weather_map"]
+  },
+  {
+    "query_id": "q014",
+    "query_text": "I need a radar map for KJFK.",
+    "selected_tools": ["get_visual_weather_map"]
+  },
+  {
+    "query_id": "q015",
+    "query_text": "Can you get me the weather at EDDF and also show a cloud map?",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q016",
+    "query_text": "What are the operational guidelines for this airport?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q017",
+    "query_text": "Hello, how are you today?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q018",
+    "query_text": "What is the primary flight control for roll?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q019",
+    "query_text": "Current weather conditions at CYVR and recent traffic.",
+    "selected_tools": ["get_airport_weather", "get_airport_traffic"]
+  },
+  {
+    "query_id": "q020",
+    "query_text": "Describe wake turbulence.",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q021",
+    "query_text": "What's the weather like for a flight from LFMN to LIRF, and also give me a wind map for the destination.",
+    "selected_tools": ["get_route_weather", "get_visual_weather_map"]
+  },
+  {
+    "query_id": "q022",
+    "query_text": "Find information on emergency descent procedures.",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q023",
+    "query_text": "Is it VMC at KSQL?",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q024",
+    "query_text": "Traffic at KLAX for the past hour and a radar view.",
+    "selected_tools": ["get_airport_traffic"]
+  },
+  {
+    "query_id": "q025",
+    "query_text": "What are the different cloud types mentioned in the PHAK?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q026",
+    "query_text": "What does 'density altitude' mean?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q027",
+    "query_text": "Provide a pressure map for the area around 51.5, -0.1, FL100.",
+    "selected_tools": ["get_visual_weather_map"]
+  },
+  {
+    "query_id": "q028",
+    "query_text": "Thank you, that was helpful.",
+    "selected_tools": []
+  },
+  {
+    "query_id": "q029",
+    "query_text": "Details on NOTAMs from PHAK.",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q030",
+    "query_text": "What's the weather forecast for KSEA tomorrow?",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q031",
+    "query_text": "Explain Bernoulli's principle in relation to aerodynamics.",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q032",
+    "query_text": "Show me a temperature map for KMIA.",
+    "selected_tools": ["get_visual_weather_map"]
+  },
+  {
+    "query_id": "q033",
+    "query_text": "Flight level weather for 34.0, -118.2 at FL250.",
+    "selected_tools": ["get_flight_level_weather"]
+  },
+  {
+    "query_id": "q034",
+    "query_text": "How many departures from KDFW in the last 4 hours?",
+    "selected_tools": ["get_airport_traffic"]
+  },
+  {
+    "query_id": "q035",
+    "query_text": "What are the symptoms of carbon monoxide poisoning for pilots?",
+    "selected_tools": ["query_aviation_knowledge_base", "get_airport_weather"]
+  },
+  {
+    "query_id": "q036",
+    "query_text": "Give me the route weather from EDDM to LOWW.",
+    "selected_tools": ["get_route_weather"]
+  },
+  {
+    "query_id": "q037",
+    "query_text": "Any significant weather phenomena currently at KBOS?",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q038",
+    "query_text": "Can you explain what a SIGMET is?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q039",
+    "query_text": "Display a visual snow map for CYUL.",
+    "selected_tools": ["get_visual_weather_map"]
+  },
+  {
+    "query_id": "q040",
+    "query_text": "What are the different types of airspace?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q041",
+    "query_text": "What is the current time?",
+    "selected_tools": ["get_airport_weather"]
+  },
+  {
+    "query_id": "q042",
+    "query_text": "Find information on engine failure procedures during takeoff.",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q043",
+    "query_text": "Get the weather for RJTT and show me a satellite map too.",
+    "selected_tools": ["get_airport_weather", "get_visual_weather_map"]
+  },
+  {
+    "query_id": "q044",
+    "query_text": "How is an aircraft's center of gravity important?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q045",
+    "query_text": "I need current airport traffic for ZSPD.",
+    "selected_tools": ["get_airport_traffic"]
+  },
+  {
+    "query_id": "q046",
+    "query_text": "What are the procedures for a go-around?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  },
+  {
+    "query_id": "q047",
+    "query_text": "Weather at FL120 above 50.1N, 14.4E and a cloud map for Prague (LKPR).",
+    "selected_tools": ["get_flight_level_weather", "get_visual_weather_map"]
+  },
+  {
+    "query_id": "q048",
+    "query_text": "Tell me about the pitot-static system.",
+    "selected_tools": []
+  },
+  {
+    "query_id": "q049",
+    "query_text": "Can you give me a summary of recent arrivals at YSSY?",
+    "selected_tools": ["get_airport_traffic"]
+  },
+  {
+    "query_id": "q050",
+    "query_text": "What are runway markings according to airport operations in PHAK?",
+    "selected_tools": ["query_aviation_knowledge_base"]
+  }
+]
