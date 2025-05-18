@@ -87,7 +87,6 @@ SkyPilot AI is an advanced Generative AI-powered agent designed to assist pilots
         source .venv/bin/activate  # On Windows: .venv\Scripts\activate
         pip install -r requirements.txt
         ```
-        *(Make sure to generate `requirements.txt` from your environment if it's not already there: `pip freeze > requirements.txt` or `poetry export -f requirements.txt --output requirements.txt --without-hashes`)*
 
 3.  **Configure API Keys & Paths:**
     *   The application primarily uses Streamlit secrets for API keys. Create a file named `.streamlit/secrets.toml` in the project root directory (same level as `streamlit_app.py`).
@@ -104,7 +103,6 @@ SkyPilot AI is an advanced Generative AI-powered agent designed to assist pilots
         # DOC_PATH = "/custom/path/to/aviation_documents"
         # QDRANT_PATH = "/custom/path/to/qdrant_datastore_assistant"
         ```
-    *   Alternatively, API keys can be set as environment variables (e.g., `export GROQ_API_KEY="your_key"`). The application will prioritize Streamlit secrets, then environment variables.
 
 4.  **Prepare Knowledge Base & Qdrant:**
     *   Ensure your aviation documents (PHAK PDFs, etc.) are in the path specified in the assistant's configuration (default: `aviation_assistant/data/aviation_documents/`).
@@ -160,12 +158,4 @@ The project includes an initial evaluation methodology focusing on the agent's t
 *   **Process:** Compare tools selected by SkyPilot AI against those selected by a SOTA LLM oracle for a sample set of queries.
 
 
-
-
-## 📄 License
-
-*(Optional: Specify a license, e.g., MIT, Apache 2.0)*
-
 ---
-
-This README should provide a solid overview and guide for anyone looking to understand or run your SkyPilot AI project. Remember to replace placeholders and customize it further as needed!
